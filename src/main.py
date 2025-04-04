@@ -5,23 +5,84 @@ FastMCP server for the Chess Engine module.
 import os
 import sys
 import logging
+from pathlib import Path
 from typing import List
+from logging.handlers import RotatingFileHandler
 from pydantic import BaseModel
 from fastapi import HTTPException
 from mcp.server.fastmcp import FastMCP
 
 from src.engine_wrapper import initialize_engine, get_best_move, stop_engine, StockfishError
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stderr),  # Log to stderr for Claude Desktop
-        logging.FileHandler('chess_engine.log')  # Also log to file
-    ]
-)
-logger = logging.getLogger('chess_engine')
+def setup_environment():
+    """Setup and validate the environment."""
+    # Get the project root directory
+    project_root = Path(__file__).parent.parent.absolute()
+
+    # Create logs directory if it doesn't exist
+    logs_dir = project_root / 'logs'
+    logs_dir.mkdir(exist_ok=True)
+
+    # Configure logging
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            # Log to stderr for immediate feedback
+            logging.StreamHandler(sys.stderr),
+
+            # Main log file with rotation (10MB max, keep 5 backup files)
+            RotatingFileHandler(
+                logs_dir / 'chess_engine.log',
+                maxBytes=10*1024*1024,  # 10MB
+                backupCount=5,
+                encoding='utf-8'
+            ),
+
+            # Error log file with rotation
+            RotatingFileHandler(
+                logs_dir / 'chess_engine.error.log',
+                maxBytes=10*1024*1024,  # 10MB
+                backupCount=5,
+                encoding='utf-8',
+                level=logging.ERROR
+            )
+        ]
+    )
+    logger = logging.getLogger('chess_engine')
+
+    # Log environment information
+    env_info = {
+        "project_root": str(project_root),
+        "current_working_directory": os.getcwd(),
+        "python_path": os.environ.get('PYTHONPATH', 'Not set'),
+        "poetry_env": os.environ.get('POETRY_ACTIVE', 'Not in Poetry env'),
+        "python_version": sys.version,
+        "log_directory": str(logs_dir)
+    }
+
+    logger.info("Environment Information:", extra={"env_info": env_info})
+
+    # Verify pyproject.toml exists
+    pyproject_path = project_root / 'pyproject.toml'
+    if not pyproject_path.exists():
+        logger.error(f"pyproject.toml not found at {pyproject_path}")
+        raise RuntimeError(f"pyproject.toml not found at {pyproject_path}")
+
+    # Verify Stockfish path
+    stockfish_path = os.environ.get('STOCKFISH_PATH')
+    if not stockfish_path:
+        logger.warning("STOCKFISH_PATH not set")
+    else:
+        logger.info(f"STOCKFISH_PATH: {stockfish_path}")
+        if not os.path.isfile(stockfish_path):
+            logger.error(f"Stockfish binary not found at {stockfish_path}")
+
+    return logger
+
+# Initialize logging and environment
+logger = setup_environment()
 
 # Initialize FastMCP
 mcp = FastMCP("chess_engine")
@@ -76,23 +137,23 @@ async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
         logger.error(f"Unexpected error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the chess engine server."""
     try:
-        # Log the current working directory and PYTHONPATH
-        logger.info(f"Current working directory: {os.getcwd()}")
-        logger.info(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
-        logger.info(f"Poetry environment: {os.environ.get('POETRY_ACTIVE', 'Not in Poetry env')}")
-
         # Initialize engine at startup
         logger.info("Starting chess engine server...")
         initialize_engine()
         logger.info("Engine initialized successfully")
 
         # Keep the server running
-        mcp.run(transport="stdio")  # Explicitly set transport for Claude Desktop
+        logger.info("Starting MCP server with stdio transport...")
+        mcp.run(transport="stdio")
     except Exception as e:
         logger.error(f"Failed to start server: {e}", exc_info=True)
         sys.exit(1)
     finally:
         logger.info("Stopping engine...")
         stop_engine()
+
+if __name__ == "__main__":
+    main()

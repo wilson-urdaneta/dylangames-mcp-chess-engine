@@ -219,4 +219,195 @@ def test_get_best_move_basic():
 3. Verify all test cases pass
 4. Check error handling works as expected
 
+## Claude Desktop Integration
+
+### Configuration Setup
+The key to successful Claude Desktop integration is proper configuration in `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "chess_engine": {
+      "command": "/opt/homebrew/bin/poetry",
+      "args": [
+        "run",
+        "-C",
+        "/path/to/project",
+        "python",
+        "-m",
+        "src.main"
+      ],
+      "cwd": "/path/to/project",
+      "transport": "stdio",
+      "env": {
+        "PYTHONPATH": "/path/to/project",
+        "STOCKFISH_PATH": "/path/to/stockfish"
+      }
+    }
+  }
+}
+```
+
+Key configuration points:
+1. Use `-C` flag with Poetry to specify project directory
+2. Use Python module format (`-m src.main`) instead of file path
+3. Set correct working directory in `cwd`
+4. Configure environment variables directly in config
+5. Use absolute paths throughout
+
+### Environment Setup
+The server needs proper environment validation:
+
+```python
+def setup_environment():
+    """Setup and validate the environment."""
+    project_root = Path(__file__).parent.parent.absolute()
+
+    # Configure logging
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(sys.stderr),
+            logging.FileHandler(project_root / 'chess_engine.log')
+        ]
+    )
+
+    # Verify critical paths and configurations
+    verify_pyproject_toml(project_root)
+    verify_stockfish_path()
+
+    return logger
+```
+
+### Python Package Structure
+Proper package structure is critical:
+
+```
+src/
+├── __init__.py      # Makes src a package
+├── main.py          # Entry point
+└── engine_wrapper.py # Core functionality
+```
+
+Key points:
+1. Use `src` layout for better package isolation
+2. Keep `__init__.py` in all directories
+3. Use relative imports within the package
+4. Configure `pyproject.toml` correctly:
+
+```toml
+[tool.poetry]
+packages = [
+    { include = "src", from = "." }
+]
+```
+
+### Logging and Debugging
+Implement comprehensive logging:
+
+1. Log to both stderr (for Claude Desktop) and file:
+```python
+handlers=[
+    logging.StreamHandler(sys.stderr),
+    logging.FileHandler('chess_engine.log')
+]
+```
+
+2. Log critical information:
+- Project root directory
+- Current working directory
+- PYTHONPATH
+- Poetry environment status
+- Stockfish path
+- Server startup/shutdown events
+- All chess moves and responses
+
+### Error Handling
+Implement robust error handling:
+
+1. Environment validation
+2. Path verification
+3. Process management
+4. Communication errors
+5. Chess engine errors
+
+Example:
+```python
+try:
+    initialize_engine()
+except StockfishError as e:
+    logger.error(f"Engine error: {e}")
+    raise HTTPException(status_code=500, detail=str(e))
+```
+
+### Remote Server Deployment
+For remote server deployment:
+
+1. Logging Configuration:
+   - Use rotating file handler
+   - Configure log levels
+   - Set up log aggregation
+   - Monitor stderr output
+
+2. Process Management:
+   - Use systemd service
+   - Configure auto-restart
+   - Set up health checks
+
+3. Environment Setup:
+   - Use environment files
+   - Configure paths correctly
+   - Set up monitoring
+
+### Best Practices
+
+1. Package Management:
+   - Use Poetry for dependency management
+   - Pin dependency versions
+   - Use virtual environments
+
+2. Code Organization:
+   - Follow src layout
+   - Use proper imports
+   - Implement clear separation of concerns
+
+3. Error Handling:
+   - Implement comprehensive error handling
+   - Use custom exceptions
+   - Provide clear error messages
+
+4. Logging:
+   - Log all critical operations
+   - Use appropriate log levels
+   - Implement structured logging
+
+5. Testing:
+   - Write comprehensive tests
+   - Use pytest fixtures
+   - Test error conditions
+
+6. Documentation:
+   - Document all functions
+   - Provide usage examples
+   - Include deployment guides
+
+### Common Issues and Solutions
+
+1. Poetry Path Issues:
+   - Use `-C` flag to specify project directory
+   - Set PYTHONPATH correctly
+   - Use module imports
+
+2. Stockfish Integration:
+   - Verify binary path
+   - Handle process communication
+   - Implement timeout handling
+
+3. Claude Desktop Integration:
+   - Configure transport correctly
+   - Set up environment variables
+   - Handle logging properly
+
 This implementation provides a robust and reliable chess engine module that can be easily integrated into the PlayPal gaming platform.
