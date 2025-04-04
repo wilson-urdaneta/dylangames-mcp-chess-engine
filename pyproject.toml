@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "chess_engine"
+version = "0.1.0"
+description = "Chess Engine module for PlayPal using Stockfish and FastMCP"
+authors = ["PlayPal Team"]
+readme = "README.md"
+packages = [
+    { include = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.109.2"
+mcp = {version = "^1.2.0", extras = ["cli"]}
+python-chess = "^1.999"
+pytest = "^7.4.0"
+setuptools = "^69.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
