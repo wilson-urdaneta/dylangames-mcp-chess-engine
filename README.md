@@ -1,5 +1,11 @@
 # PlayPal Chess Engine Module
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
+[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![CI/CD](https://github.com/yourusername/dylangames-mcp-chess-engine/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/yourusername/dylangames-mcp-chess-engine/actions)
+
 A robust chess engine module for the PlayPal gaming platform, powered by Stockfish and FastMCP. This module provides a reliable interface to the Stockfish chess engine through a FastAPI server, making it easy to integrate chess functionality into your applications.
 
 ## Features
@@ -145,7 +151,7 @@ The codebase follows these standards:
 - PEP 8 compliance
 - Proper resource management
 
-### Version Control
+### Version Control and Releases
 
 1. Initialize git repository (if not already done):
 ```bash
@@ -163,6 +169,30 @@ git commit -m "Initial commit: Chess engine module implementation"
 git remote add origin https://github.com/yourusername/dylangames-mcp-chess-engine.git
 git push -u origin main
 ```
+
+4. Creating Releases:
+   - For internal releases:
+     ```bash
+     git tag v0.1.0-internal
+     git push origin v0.1.0-internal
+     ```
+   - For public releases:
+     ```bash
+     git tag v0.1.0
+     git push origin v0.1.0
+     ```
+
+   This will trigger the GitHub Actions workflow which will:
+   - Run all tests
+   - Build the package
+   - Create a GitHub release with the built artifacts
+   - (Optional) Publish to PyPI if enabled
+
+5. PyPI Publishing:
+   PyPI publishing is disabled by default. To enable it:
+   - Create a PyPI account and generate an API token
+   - Add the token to your GitHub repository secrets as `PYPI_TOKEN`
+   - Add `ENABLE_PYPI` secret with value `true` to your GitHub repository
 
 ## Contributing
 

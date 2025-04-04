@@ -25,29 +25,40 @@ def setup_environment():
 
     # Configure logging
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+    # Create handlers
+    stream_handler = logging.StreamHandler(sys.stderr)
+    stream_handler.setLevel(logging.INFO)
+
+    main_file_handler = RotatingFileHandler(
+        logs_dir / 'chess_engine.log',
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5,
+        encoding='utf-8'
+    )
+    main_file_handler.setLevel(logging.INFO)
+
+    error_file_handler = RotatingFileHandler(
+        logs_dir / 'chess_engine.error.log',
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5,
+        encoding='utf-8'
+    )
+    error_file_handler.setLevel(logging.ERROR)
+
+    # Set formatter for all handlers
+    formatter = logging.Formatter(log_format)
+    stream_handler.setFormatter(formatter)
+    main_file_handler.setFormatter(formatter)
+    error_file_handler.setFormatter(formatter)
+
     logging.basicConfig(
         level=logging.INFO,
         format=log_format,
         handlers=[
-            # Log to stderr for immediate feedback
-            logging.StreamHandler(sys.stderr),
-
-            # Main log file with rotation (10MB max, keep 5 backup files)
-            RotatingFileHandler(
-                logs_dir / 'chess_engine.log',
-                maxBytes=10*1024*1024,  # 10MB
-                backupCount=5,
-                encoding='utf-8'
-            ),
-
-            # Error log file with rotation
-            RotatingFileHandler(
-                logs_dir / 'chess_engine.error.log',
-                maxBytes=10*1024*1024,  # 10MB
-                backupCount=5,
-                encoding='utf-8',
-                level=logging.ERROR
-            )
+            stream_handler,
+            main_file_handler,
+            error_file_handler
         ]
     )
     logger = logging.getLogger('chess_engine')
