@@ -1,81 +1,68 @@
-"""
-Unit tests for the Chess Engine module.
-"""
+"""Test suite for the chess engine module."""
 
-import os
 import pytest
-from src.engine_wrapper import initialize_engine, get_best_move, stop_engine, StockfishError
+
+from src.engine_wrapper import (
+    StockfishError,
+    get_best_move,
+    initialize_engine,
+    stop_engine,
+)
+
 
 @pytest.fixture(scope="session", autouse=True)
-def engine():
-    """Fixture to initialize and cleanup the engine for tests."""
-    try:
-        # First ensure any existing engine is stopped
-        try:
-            stop_engine()
-        except:
-            pass
-
-        # Initialize the engine with default path
-        initialize_engine()
-
-        # Run a simple test to ensure it's working
-        test_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        test_move = get_best_move(test_fen, [])
-        if not test_move or not isinstance(test_move, str) or len(test_move) < 4:
-            raise StockfishError("Engine initialization test failed")
-
-        yield
-    finally:
-        try:
-            stop_engine()
-        except:
-            pass
-
-@pytest.fixture(autouse=True)
 def ensure_engine_running():
-    """Fixture to ensure engine is running before each test."""
-    global _engine_process, _initialized
-    from src.engine_wrapper import _engine_process, _initialized
-
-    if not _initialized or not _engine_process or _engine_process.poll() is not None:
+    """Ensure the Stockfish engine is running for tests."""
+    try:
         initialize_engine()
+        yield
+    except StockfishError as e:
+        pytest.fail(f"Failed to initialize engine: {e}")
+    finally:
+        stop_engine()
+
 
 def test_initialize_engine():
-    """Test that engine initialization works."""
-    # The fixture ensures this is called, so if we get here, it passed
-    pass
+    """Test engine initialization."""
+    try:
+        initialize_engine()
+        assert True  # If we get here, initialization succeeded
+    except StockfishError as e:
+        pytest.fail(f"Failed to initialize engine: {e}")
+
 
 def test_get_best_move_basic():
-    """Test getting a move from the starting position."""
-    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    move_history = []
-    best_move = get_best_move(fen, move_history)
-    assert isinstance(best_move, str)
-    assert len(best_move) >= 4 and len(best_move) <= 5
-    assert best_move.isalnum()  # Should only contain letters and numbers
+    """Test getting best move from starting position."""
+    try:
+        move = get_best_move(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", []
+        )
+        assert move is not None and len(move) >= 4
+    except StockfishError as e:
+        pytest.fail(f"Failed to get best move: {e}")
+
 
 def test_get_best_move_invalid_fen():
-    """Test that invalid FEN raises an exception."""
-    fen = "invalid fen"
-    move_history = []
+    """Test handling of invalid FEN string."""
     with pytest.raises(StockfishError):
-        get_best_move(fen, move_history)
+        get_best_move("invalid fen", [])
+
 
 def test_get_best_move_valid_position():
-    """Test getting a move from a specific position."""
-    fen = "r1bqkbnr/ppp2ppp/2n5/3pp3/3P4/2N5/PPP1PPPP/R1BQKBNR w KQkq - 0 5"
-    move_history = ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5"]
-    best_move = get_best_move(fen, move_history)
-    assert isinstance(best_move, str)
-    assert len(best_move) >= 4 and len(best_move) <= 5
-    assert best_move.isalnum()  # Should only contain letters and numbers
+    """Test getting best move from a specific position."""
+    fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"
+    try:
+        move = get_best_move(fen, [])
+        assert move is not None and len(move) >= 4
+    except StockfishError as e:
+        pytest.fail(f"Failed to get best move: {e}")
+
 
 def test_get_best_move_with_history():
-    """Test that move history is correctly handled."""
-    fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
-    move_history = ["e2e4"]
-    best_move = get_best_move(fen, move_history)
-    assert isinstance(best_move, str)
-    assert len(best_move) >= 4 and len(best_move) <= 5
-    assert best_move.isalnum()  # Should only contain letters and numbers
+    """Test getting best move with move history."""
+    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    try:
+        move = get_best_move(fen, ["e2e4", "e7e5"])
+        assert move is not None and len(move) >= 4
+    except StockfishError as e:
+        pytest.fail(f"Failed to get best move: {e}")

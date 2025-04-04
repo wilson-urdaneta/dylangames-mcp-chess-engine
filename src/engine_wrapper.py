@@ -1,32 +1,45 @@
-"""
-Wrapper for the Stockfish chess engine.
-"""
+"""Provide a wrapper for the Stockfish chess engine."""
 
-import os
-import sys
-import subprocess
-import select
 import logging
+import os
+import select
+import subprocess
 import time
+from pathlib import Path
 from typing import List, Optional
 
-# Configure logging
-logger = logging.getLogger('chess_engine.engine')
+# Initialize logger
+logger = logging.getLogger(__name__)
+
 
 class StockfishError(Exception):
-    """Custom exception for Stockfish-related errors."""
+    """Error communicating with the Stockfish engine."""
+
     pass
 
-# Global variables
+
+# Global variables to track engine state
 _engine_process: Optional[subprocess.Popen] = None
-_initialized = False
+_initialized: bool = False
+
 
 def _get_stockfish_path() -> str:
     """Get the path to the Stockfish binary."""
     path = os.environ.get("STOCKFISH_PATH")
     if not path:
         logger.warning("STOCKFISH_PATH not set, using default path")
-        path = "/Users/wilson/AI/new/dylangames/dylangames-engines/games/chess/stockfish/builds/17.1/macos/universal/stockfish"
+        path = str(
+            Path(__file__).parent.parent.parent
+            / "dylangames-engines"
+            / "games"
+            / "chess"
+            / "stockfish"
+            / "builds"
+            / "17.1"
+            / "macos"
+            / "universal"
+            / "stockfish"
+        )
 
     if not os.path.isfile(path):
         error_msg = f"Stockfish binary not found at {path}"
@@ -35,6 +48,7 @@ def _get_stockfish_path() -> str:
 
     logger.info(f"Using Stockfish binary at: {path}")
     return path
+
 
 def _send_command(command: str) -> None:
     """Send a command to the Stockfish engine."""
@@ -51,6 +65,7 @@ def _send_command(command: str) -> None:
         error_msg = f"Failed to send command: {e}"
         logger.error(error_msg)
         raise StockfishError(error_msg)
+
 
 def _read_response(until: str = None, timeout: float = 2.0) -> List[str]:
     """Read response from the Stockfish engine."""
@@ -89,8 +104,9 @@ def _read_response(until: str = None, timeout: float = 2.0) -> List[str]:
 
     return responses
 
+
 def initialize_engine() -> None:
-    """Initialize the Stockfish engine."""
+    """Initialize the Stockfish engine process."""
     global _engine_process, _initialized
 
     if _initialized and _engine_process and _engine_process.poll() is None:
@@ -110,7 +126,7 @@ def initialize_engine() -> None:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             bufsize=0,
-            text=False
+            text=False,
         )
 
         # Initialize UCI mode
@@ -140,9 +156,14 @@ def initialize_engine() -> None:
         stop_engine()
         raise StockfishError(error_msg)
 
+
 def get_best_move(fen: str, move_history: List[str] = None) -> str:
     """Get the best move for a given position."""
-    if not _initialized or not _engine_process or _engine_process.poll() is not None:
+    if (
+        not _initialized
+        or not _engine_process
+        or _engine_process.poll() is not None
+    ):
         error_msg = "Engine not initialized or not running"
         logger.error(error_msg)
         raise StockfishError(error_msg)
@@ -178,6 +199,7 @@ def get_best_move(fen: str, move_history: List[str] = None) -> str:
         error_msg = f"Error getting best move: {e}"
         logger.error(error_msg)
         raise StockfishError(error_msg)
+
 
 def stop_engine() -> None:
     """Stop the Stockfish engine."""
