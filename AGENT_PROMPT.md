@@ -411,3 +411,275 @@ For remote server deployment:
    - Handle logging properly
 
 This implementation provides a robust and reliable chess engine module that can be easily integrated into the PlayPal gaming platform.
+
+# Chess Engine Agent Prompt
+
+## Project Overview
+This is a Python-based chess engine module that integrates with the Stockfish chess engine through FastMCP. The module provides a clean API for getting the best move in a given chess position.
+
+## Development Environment
+
+### Python Setup
+- Python version: 3.10 or higher
+- Package management: Poetry
+- Virtual environment: Automatically managed by Poetry
+
+### Dependencies
+Core dependencies:
+- fastapi
+- pydantic
+- mcp-core (FastMCP)
+
+Development dependencies:
+- pytest
+- black
+- flake8
+- flake8-docstrings
+- isort
+- pre-commit
+
+## Code Quality Standards
+
+### Code Formatting
+- Black is used for code formatting with:
+  - Line length: 79 characters
+  - Target Python version: 3.10
+  - Configuration in `pyproject.toml`
+
+### Import Sorting
+- isort is used for import sorting with:
+  - Profile: black
+  - Line length: 79 characters
+  - Multi-line output style: 3 (vertical hanging indent)
+  - Configuration in `pyproject.toml`
+
+### Linting
+- Flake8 is used for linting with:
+  - Max line length: 79 characters
+  - Docstring convention: Google
+  - Special rules:
+    - E203: Ignored (conflicts with Black)
+    - Special ignores for __init__.py and test files
+  - Configuration in `pyproject.toml`
+
+### Pre-commit Hooks
+Pre-commit is configured to run the following checks before each commit:
+- trailing-whitespace
+- end-of-file-fixer
+- check-yaml
+- check-added-large-files
+- debug-statements
+- black
+- isort
+- flake8
+
+Configuration in `.pre-commit-config.yaml`
+
+## Testing
+
+### Test Framework
+- pytest is used for testing
+- Test files located in `tests/` directory
+- Test discovery patterns:
+  - `test_*.py`
+  - `*_test.py`
+  - `tests.py`
+
+### Test Categories
+1. Engine Initialization Tests
+   - Verify engine starts correctly
+   - Handle initialization failures
+
+2. Move Generation Tests
+   - Basic position tests
+   - Invalid FEN handling
+   - Position with move history
+   - Complex positions
+
+### Test Fixtures
+- `ensure_engine_running`: Fixture that:
+  - Runs before each test
+  - Stops any existing engine
+  - Initializes a new engine
+  - Cleans up after test completion
+
+### Test Best Practices
+1. Always clean up resources:
+   - Stop engine in fixture's finally block
+   - Clean temporary files
+2. Use proper assertions:
+   - Check move validity
+   - Verify error conditions
+3. Handle exceptions:
+   - Use pytest.fail for test failures
+   - Catch and verify expected exceptions
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflow
+Located in `.github/workflows/ci-cd.yml`
+
+#### Triggers
+- Push to main branch
+- Pull requests to main
+- Tags starting with 'v'
+
+#### Jobs
+
+1. Lint:
+   - Runs on ubuntu-latest
+   - Steps:
+     - Checkout code
+     - Setup Python 3.10
+     - Install Poetry
+     - Install dependencies
+     - Run black, isort, and flake8
+
+2. Test:
+   - Runs on ubuntu-latest
+   - Steps:
+     - Checkout code
+     - Setup Python 3.10
+     - Install Poetry
+     - Install dependencies
+     - Install Stockfish
+     - Run pytest
+
+3. Package:
+   - Needs: [lint, test]
+   - Steps:
+     - Build package
+     - Upload artifacts
+
+4. Release:
+   - Needs: package
+   - Conditions:
+     - Tag starts with 'v'
+     - Not an internal release
+   - Steps:
+     - Create GitHub release
+     - Publish to PyPI (when enabled)
+
+### Environment Variables
+- `ENABLE_PYPI`: Controls PyPI publishing (default: false)
+- `STOCKFISH_PATH`: Path to Stockfish binary
+
+### Secrets Required
+- `PYPI_TOKEN`: For PyPI publishing (when enabled)
+
+## Release Process
+
+### Version Management
+- Version stored in `__version__.py`
+- Format: MAJOR.MINOR.PATCH (e.g., "0.1.0")
+
+### Release Types
+1. Internal Releases
+   - Tag format: v*-internal
+   - Not published to PyPI
+   - Creates prerelease on GitHub
+
+2. Public Releases
+   - Tag format: v*
+   - Can be published to PyPI
+   - Creates full release on GitHub
+
+### Release Steps
+1. Update version in `__version__.py`
+2. Create and push tag:
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+3. CI/CD pipeline automatically:
+   - Runs tests
+   - Creates GitHub release
+   - Publishes to PyPI (if enabled)
+
+## Logging
+
+### Configuration
+- Uses Python's built-in logging
+- Multiple handlers:
+  - Console (stderr)
+  - Main log file (with rotation)
+  - Error log file (with rotation)
+- Log format: timestamp, logger name, level, message
+
+### Log Files
+- Location: `logs/` directory
+- Files:
+  - `chess_engine.log`: Main log file
+  - `chess_engine.error.log`: Error-only log file
+- Rotation:
+  - Max size: 10MB
+  - Backup count: 5
+
+### Log Levels
+- INFO: Normal operations
+- ERROR: Engine failures
+- DEBUG: Detailed operations (commands/responses)
+
+## Error Handling
+
+### Custom Exceptions
+- `StockfishError`: For engine-related errors
+  - Process communication issues
+  - Invalid commands/positions
+  - Engine initialization failures
+
+### Best Practices
+1. Always log errors before raising
+2. Include context in error messages
+3. Clean up resources in finally blocks
+4. Use appropriate error types
+
+## Development Workflow
+
+1. Setup:
+   ```bash
+   # Install dependencies
+   poetry install
+
+   # Install pre-commit hooks
+   pre-commit install
+   ```
+
+2. Development:
+   - Write tests first
+   - Implement features
+   - Run local checks:
+     ```bash
+     poetry run black . --check
+     poetry run isort . --check
+     poetry run flake8 .
+     poetry run pytest tests/ -v
+     ```
+
+3. Commit:
+   - Pre-commit hooks run automatically
+   - Fix any issues before commit
+
+4. CI/CD:
+   - Push to trigger GitHub Actions
+   - Monitor workflow execution
+   - Fix any CI failures
+
+## Troubleshooting
+
+### Common Issues
+
+1. Test Failures:
+   - Check Stockfish installation
+   - Verify STOCKFISH_PATH
+   - Look for process conflicts
+
+2. Linting Issues:
+   - Run formatters locally
+   - Check configuration in pyproject.toml
+   - Use pre-commit run --all-files
+
+3. CI/CD Issues:
+   - Check workflow logs
+   - Verify environment variables
+   - Test locally with same configuration
