@@ -10,10 +10,11 @@ from src.engine_wrapper import (
 )
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def ensure_engine_running():
     """Ensure the Stockfish engine is running for tests."""
     try:
+        stop_engine()  # Stop any existing engine
         initialize_engine()
         yield
     except StockfishError as e:
