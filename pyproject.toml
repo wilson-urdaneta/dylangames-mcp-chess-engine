@@ -5,7 +5,8 @@ description = "Chess Engine module for PlayPal using Stockfish and FastMCP"
 authors = ["PlayPal Team"]
 readme = "README.md"
 packages = [
-    { include = "src", from = "." }
+    { include = "src", from = "." },
+    { include = "tests", from = "." }
 ]
 license = "MIT"
 repository = "https://github.com/yourusername/dylangames-mcp-chess-engine"
@@ -64,3 +65,8 @@ per-file-ignores = [
     "tests/*:D100,D101,D102,D103"
 ]
 exclude = [".git", "__pycache__", "build", "dist"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+addopts = "-v"
