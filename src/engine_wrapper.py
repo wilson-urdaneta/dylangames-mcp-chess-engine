@@ -3,12 +3,18 @@ Wrapper for the Stockfish chess engine.
 """
 
 import os
+import sys
 import subprocess
+import select
+import logging
 import time
 from typing import List, Optional
 
+# Configure logging
+logger = logging.getLogger('chess_engine.engine')
+
 class StockfishError(Exception):
-    """Exception raised for errors in the Stockfish engine."""
+    """Custom exception for Stockfish-related errors."""
     pass
 
 # Global variables
@@ -17,176 +23,161 @@ _initialized = False
 
 def _get_stockfish_path() -> str:
     """Get the path to the Stockfish binary."""
-    path = os.environ.get("STOCKFISH_PATH", "/Users/wilson/AI/new/dylangames/dylangames-engines/games/chess/stockfish/builds/17.1/macos/universal/stockfish")
+    path = os.environ.get("STOCKFISH_PATH")
+    if not path:
+        logger.warning("STOCKFISH_PATH not set, using default path")
+        path = "/Users/wilson/AI/new/dylangames/dylangames-engines/games/chess/stockfish/builds/17.1/macos/universal/stockfish"
+
     if not os.path.isfile(path):
-        raise EnvironmentError(
-            f"Stockfish binary not found at {path}. "
-            "Please set STOCKFISH_PATH to point to your Stockfish binary."
-        )
+        error_msg = f"Stockfish binary not found at {path}"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
+
+    logger.info(f"Using Stockfish binary at: {path}")
     return path
 
-def _send_command(command: str, timeout: float = 2.0) -> None:
-    """Send a command to the engine and wait for it to be processed."""
-    global _engine_process
+def _send_command(command: str) -> None:
+    """Send a command to the Stockfish engine."""
     if not _engine_process or _engine_process.poll() is not None:
-        raise StockfishError("Engine process is not running")
+        error_msg = "Engine process is not running"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
 
     try:
+        logger.debug(f"Sending command: {command}")
         _engine_process.stdin.write(f"{command}\n".encode())
         _engine_process.stdin.flush()
-    except BrokenPipeError:
-        raise StockfishError("Failed to communicate with engine")
+    except BrokenPipeError as e:
+        error_msg = f"Failed to send command: {e}"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
 
 def _read_response(until: str = None, timeout: float = 2.0) -> List[str]:
-    """Read the engine's response until a specific string is found or timeout."""
-    global _engine_process
+    """Read response from the Stockfish engine."""
     if not _engine_process or _engine_process.poll() is not None:
-        raise StockfishError("Engine process is not running")
+        error_msg = "Engine process is not running"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
 
+    responses = []
     start_time = time.time()
-    response = []
-    found_until = False
-
-    while True:
-        if time.time() - start_time > timeout:
-            raise StockfishError("Timeout waiting for engine response")
-
-        try:
-            # Check if there's data available to read
-            import select
-            ready = select.select([_engine_process.stdout], [], [], 0.1)[0]
-            if not ready:
-                # If we're not waiting for a specific response or we found it, we're done
-                if not until or found_until:
-                    break
-                # If we're waiting for a response but there's no data, check if process is alive
-                if _engine_process.poll() is not None:
-                    raise StockfishError("Engine process terminated unexpectedly")
-                continue
-
-            line = _engine_process.stdout.readline()
-            if not line:
-                continue
-
-            # Decode and strip the line
-            try:
-                line = line.decode().strip()
-            except UnicodeDecodeError:
-                continue
-
-            if line:
-                response.append(line)
-                # Check if this line matches what we're waiting for
-                if until and line.startswith(until):
-                    found_until = True
-                    # Don't break here - read any remaining output
-
-        except Exception as e:
-            raise StockfishError(f"Failed to read engine response: {str(e)}")
-
-    if until and not found_until:
-        raise StockfishError(f"Expected response '{until}' not found in engine output")
-
-    return response
-
-def initialize_engine(stockfish_path: str = None) -> None:
-    """Initialize the Stockfish engine.
-
-    Args:
-        stockfish_path: Optional path to Stockfish binary. If not provided,
-                       will try to use STOCKFISH_PATH env var.
-    """
-    global _engine_process, _initialized
-
-    # Get Stockfish path
-    path = stockfish_path or _get_stockfish_path()
-
-    if not os.path.isfile(path):
-        raise StockfishError(f"Stockfish binary not found at {path}")
-
-    if not os.access(path, os.X_OK):
-        raise StockfishError(f"Stockfish binary at {path} is not executable")
-
-    # Stop any existing engine
-    stop_engine()
 
     try:
+        while True:
+            if time.time() - start_time > timeout:
+                error_msg = f"Timeout waiting for response (waited {timeout}s)"
+                logger.error(error_msg)
+                raise StockfishError(error_msg)
+
+            # Check if there's data available to read
+            if select.select([_engine_process.stdout], [], [], 0.1)[0]:
+                line = _engine_process.stdout.readline().decode().strip()
+                if line:
+                    logger.debug(f"Received: {line}")
+                    responses.append(line)
+                    if until and line.startswith(until):
+                        break
+            elif _engine_process.poll() is not None:
+                error_msg = "Engine process terminated unexpectedly"
+                logger.error(error_msg)
+                raise StockfishError(error_msg)
+
+    except Exception as e:
+        error_msg = f"Error reading engine response: {e}"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
+
+    return responses
+
+def initialize_engine() -> None:
+    """Initialize the Stockfish engine."""
+    global _engine_process, _initialized
+
+    if _initialized and _engine_process and _engine_process.poll() is None:
+        logger.info("Engine already initialized")
+        return
+
+    try:
+        # Stop any existing process
+        stop_engine()
+
+        # Start new process
+        stockfish_path = _get_stockfish_path()
+        logger.info("Starting Stockfish process...")
         _engine_process = subprocess.Popen(
-            [path],
+            [stockfish_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=False,  # Use bytes mode
-            bufsize=0,   # No buffering
-            cwd=os.path.dirname(path)  # Run in same directory as binary
+            bufsize=0,
+            text=False
         )
 
-        # Send UCI command and wait for uciok
+        # Initialize UCI mode
+        logger.info("Initializing UCI mode...")
         _send_command("uci")
-        response = _read_response(until="uciok", timeout=5.0)
+        responses = _read_response(until="uciok", timeout=5.0)
+        if not any(r.startswith("uciok") for r in responses):
+            raise StockfishError("Failed to initialize UCI mode")
 
-        # Set some standard options
-        _send_command("setoption name UCI_Chess960 value false")
-        _send_command("setoption name Threads value 1")
+        # Set options
+        logger.info("Setting engine options...")
         _send_command("setoption name Hash value 128")
+        _send_command("setoption name Threads value 4")
+
+        # Verify engine is ready
         _send_command("isready")
-        response = _read_response(until="readyok", timeout=5.0)
+        responses = _read_response(until="readyok", timeout=5.0)
+        if not any(r.startswith("readyok") for r in responses):
+            raise StockfishError("Engine not responding to isready command")
 
         _initialized = True
+        logger.info("Engine initialized successfully")
+
     except Exception as e:
+        error_msg = f"Failed to initialize engine: {e}"
+        logger.error(error_msg)
         stop_engine()
-        raise StockfishError(f"Failed to initialize engine: {str(e)}")
+        raise StockfishError(error_msg)
 
-def get_best_move(fen: str, move_history: List[str]) -> str:
+def get_best_move(fen: str, move_history: List[str] = None) -> str:
     """Get the best move for a given position."""
-    global _engine_process, _initialized
-
     if not _initialized or not _engine_process or _engine_process.poll() is not None:
-        raise StockfishError("Engine is not initialized")
+        error_msg = "Engine not initialized or not running"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
 
     try:
-        # First set starting position
-        _send_command("position startpos")
+        logger.info(f"Getting best move for position: {fen}")
+        if move_history:
+            logger.debug(f"Move history: {move_history}")
 
-        # Then set the actual position with FEN and moves
+        # Set position
         position_cmd = f"position fen {fen}"
         if move_history:
             position_cmd += f" moves {' '.join(move_history)}"
         _send_command(position_cmd)
 
-        # Make sure engine is ready
-        _send_command("isready")
-        response = _read_response(until="readyok", timeout=5.0)
+        # Get best move
+        logger.debug("Calculating best move...")
+        _send_command("go movetime 3000")
+        responses = _read_response(until="bestmove", timeout=5.0)
 
-        # Get best move with timeout
-        _send_command("go movetime 1000")  # Reduced time to 1 second for tests
-        try:
-            response = _read_response(until="bestmove", timeout=3.0)  # Increased timeout slightly
-        except StockfishError as e:
-            if "timeout" in str(e).lower():
-                # Try to stop the engine if it's taking too long
-                _send_command("stop")
-                # Try to read the response again after stopping
-                try:
-                    response = _read_response(until="bestmove", timeout=2.0)
-                except:
-                    raise StockfishError("Engine took too long to respond")
-            else:
-                raise
+        # Parse response
+        for response in responses:
+            if response.startswith("bestmove"):
+                best_move = response.split()[1]
+                logger.info(f"Best move found: {best_move}")
+                return best_move
 
-        # Parse the best move
-        for line in reversed(response):
-            if line.startswith("bestmove"):
-                move = line.split()[1]
-                if move == "(none)":
-                    raise StockfishError("No legal moves in position")
-                return move
+        error_msg = "No best move found in engine response"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
 
-        raise StockfishError("Failed to get best move from engine")
     except Exception as e:
-        # If we encounter any error, try to reinitialize the engine
-        stop_engine()
-        raise StockfishError(f"Error getting best move: {str(e)}")
+        error_msg = f"Error getting best move: {e}"
+        logger.error(error_msg)
+        raise StockfishError(error_msg)
 
 def stop_engine() -> None:
     """Stop the Stockfish engine."""
@@ -194,35 +185,17 @@ def stop_engine() -> None:
 
     if _engine_process:
         try:
+            logger.info("Stopping engine process...")
             if _engine_process.poll() is None:
-                # Try graceful shutdown first
-                try:
-                    _send_command("quit")
-                    _engine_process.communicate(timeout=1.0)
-                except:
-                    pass
-
-                # If still running, terminate
-                if _engine_process.poll() is None:
-                    _engine_process.terminate()
-                    try:
-                        _engine_process.wait(timeout=1.0)
-                    except:
-                        pass
-
-                # If still running, kill
-                if _engine_process.poll() is None:
-                    _engine_process.kill()
-                    try:
-                        _engine_process.wait(timeout=1.0)
-                    except:
-                        pass
-        except:
-            pass
-        finally:
+                _send_command("quit")
+                _engine_process.wait(timeout=2.0)
+        except Exception as e:
+            logger.warning(f"Error during graceful shutdown: {e}")
             try:
                 _engine_process.kill()
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Failed to kill engine process: {e}")
+        finally:
             _engine_process = None
             _initialized = False
+            logger.info("Engine stopped")

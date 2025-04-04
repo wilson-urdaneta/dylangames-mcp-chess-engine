@@ -74,36 +74,43 @@ print(response.best_move_uci)  # e.g., "e2e4"
 
 ### Using with Claude Desktop
 
-1. Install Claude Desktop and set up your API key
-2. Create a new conversation
-3. Use the following prompt template:
+1. Install and configure Claude Desktop:
+   ```bash
+   # Install the module globally
+   poetry build
+   pip install dist/*.whl
+   ```
 
-```
-I want to use the chess engine module. Here's my code:
+2. Set up environment variables in Claude Desktop:
+   ```bash
+   export PYTHONPATH=/path/to/your/project
+   export STOCKFISH_PATH=/path/to/stockfish
+   ```
 
-[Your code here]
+3. Start a new conversation in Claude Desktop and use this template:
+   ```python
+   from mcp.server.fastmcp import FastMCP
 
-Please help me:
-1. Set up the connection to the chess engine
-2. Generate moves for my chess position
-3. Handle any errors that occur
-```
+   async def get_chess_move(fen: str, history: List[str] = None) -> str:
+       mcp = FastMCP("chess_engine")
+       response = await mcp.get_best_move_tool({
+           "fen": fen,
+           "move_history": history or []
+       })
+       return response.best_move_uci
 
-Example interaction:
-```python
-# Example code to share with Claude
-from mcp import FastMCP
+   # Example usage:
+   fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+   move = await get_chess_move(fen)
+   print(f"Best move: {move}")
+   ```
 
-async def get_chess_move(fen: str, history: List[str]) -> str:
-    mcp = FastMCP("chess_engine")
-    response = await mcp.get_best_move_tool({
-        "fen": fen,
-        "move_history": history
-    })
-    return response.best_move_uci
-
-# Claude can help you use this code and handle errors
-```
+4. Troubleshooting Claude Desktop:
+   - Ensure the module is installed globally
+   - Verify PYTHONPATH includes the project directory
+   - Check STOCKFISH_PATH points to valid binary
+   - Look for errors in chess_engine.log
+   - Use stderr output for debugging
 
 ## Development
 
