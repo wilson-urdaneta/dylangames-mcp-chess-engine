@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
 
-from src.engine_wrapper import (
+from .engine_wrapper import (
     StockfishError,
     get_best_move,
     initialize_engine,
@@ -22,7 +22,7 @@ from src.engine_wrapper import (
 def setup_environment():
     """Set up and validate the environment."""
     # Get the project root directory
-    project_root = Path(__file__).parent.parent.absolute()
+    project_root = Path(__file__).parent.parent.parent.absolute()
 
     # Create logs directory if it doesn't exist
     logs_dir = project_root / "logs"

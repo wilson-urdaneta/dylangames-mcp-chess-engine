@@ -28,18 +28,7 @@ def _get_stockfish_path() -> str:
     path = os.environ.get("STOCKFISH_PATH")
     if not path:
         logger.warning("STOCKFISH_PATH not set, using default path")
-        path = str(
-            Path(__file__).parent.parent.parent
-            / "dylangames-engines"
-            / "games"
-            / "chess"
-            / "stockfish"
-            / "builds"
-            / "17.1"
-            / "macos"
-            / "universal"
-            / "stockfish"
-        )
+        path = str(Path(__file__).parent.parent / "stockfish" / "stockfish")
 
     if not os.path.isfile(path):
         error_msg = f"Stockfish binary not found at {path}"

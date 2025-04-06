@@ -5,7 +5,7 @@ description = "Chess Engine module for PlayPal using Stockfish and FastMCP"
 authors = ["PlayPal Team"]
 readme = "README.md"
 packages = [
-    { include = "src", from = "." },
+    { include = "dylangames_mcp_chess_engine", from = "src" },
     { include = "tests", from = "." }
 ]
 license = "MIT"
@@ -40,7 +40,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-chess-engine = "src.main:main"
+chess-engine = "dylangames_mcp_chess_engine.main:main"
 
 [tool.black]
 line-length = 79

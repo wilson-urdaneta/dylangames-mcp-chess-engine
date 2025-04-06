@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.engine_wrapper import (
+from dylangames_mcp_chess_engine.engine_wrapper import (
     StockfishError,
     get_best_move,
     initialize_engine,
