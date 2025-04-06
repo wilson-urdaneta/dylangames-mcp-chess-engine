@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "chess_engine": {
+      "command": "/opt/homebrew/bin/poetry",
+      "args": [
+        "run",
+        "-C",
+        "/Users/wilson/AI/new/dylangames/dylangames-mcp-chess-engine",
+        "python",
+        "-m",
+        "src.main"
+      ],
+      "cwd": "/Users/wilson/AI/new/dylangames/dylangames-mcp-chess-engine",
+      "transport": "stdio",
+      "env": {
+        "PYTHONPATH": "/Users/wilson/AI/new/dylangames/dylangames-mcp-chess-engine",
+        "STOCKFISH_PATH": "/Users/wilson/AI/new/dylangames/dylangames-engines/games/chess/stockfish/builds/17.1/macos/universal/stockfish"
+      }
+    }
+  }
+}
