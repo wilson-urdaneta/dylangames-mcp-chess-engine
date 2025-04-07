@@ -43,8 +43,15 @@ htmlcov/
 # Logs
 *.log
 
-# Local Stockfish binary
-src/stockfish/stockfish*
+# Engine binaries
+engines/**/*.exe
+engines/**/*.dll
+engines/**/*.so
+engines/**/*.dylib
+engines/**/stockfish
+engines/**/stockfish.exe
+engines/**/stockfish_*
+!engines/**/README.md
 
 # Environment variables
 .env
