@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "chess_engine"
 version = "0.1.0"
-description = "Chess Engine module for PlayPal using Stockfish and FastMCP"
-authors = ["PlayPal Team"]
+description = "Chess Engine module for ChessPal using Stockfish and FastMCP"
+authors = ["DylanGames Team"]
 readme = "README.md"
 packages = [
     { include = "dylangames_mcp_chess_engine", from = "src" },
@@ -10,7 +10,7 @@ packages = [
 ]
 license = "MIT"
 repository = "https://github.com/yourusername/dylangames-mcp-chess-engine"
-keywords = ["chess", "stockfish", "mcp", "playpal"]
+keywords = ["chess", "stockfish", "mcp", "chesspal"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

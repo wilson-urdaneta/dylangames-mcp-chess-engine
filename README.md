@@ -1,4 +1,4 @@
-# PlayPal Chess Engine Module
+# ChessPal - Chess Engine Module
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
@@ -6,12 +6,12 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI/CD](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions)
 
-A robust chess engine module for the PlayPal gaming platform, powered by Stockfish and FastMCP. This module provides a reliable interface to the Stockfish chess engine through a FastAPI server, making it easy to integrate chess functionality into your applications.
+A robust chess engine module for the ChessPal gaming platform, powered by Stockfish and FastMCP. This module provides a reliable interface to the Stockfish chess engine through a FastAPI server, making it easy to integrate chess functionality into your applications.
 
 ## Features
 
 - Robust Stockfish engine integration with proper process management
-- FastMCP server for easy integration with PlayPal platform
+- FastMCP server for easy integration with ChessPal platform
 - UCI protocol implementation for chess move generation
 - Comprehensive test suite
 - Error handling and recovery mechanisms
@@ -210,7 +210,7 @@ MIT License - see LICENSE file for details
 
 - Stockfish Chess Engine team
 - FastMCP developers
-- PlayPal gaming platform team
+- DylanGames gaming platform team
 
 ## Support
 
