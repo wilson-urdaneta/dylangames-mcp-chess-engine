@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "chess_agent_wsl": {
+      "command": "wsl.exe",
+      "args": [
+        "--cd", "/home/wilson/AI/new/dylangames/dylangames-mcp-chess-agent",
+        "/home/akikax/.local/bin/poetry",
+        "run",
+        "python",
+        "-m",
+        "dylangames_mcp_chess_agent.main",
+        "--transport",
+        "stdio"
+      ],
+      "cwd": "C:\\Users\\Wilson\\AI\\new\\dylangames\\dylangames-mcp-chess-agent",
+      "transport": "stdio",
+      "env": {
+        "ENGINE_PATH": "/mnt/c/Users/wilson/AI/new/dylangames/dylangames-engines/games/chess/stockfish/builds/17.1/linux/stockfish"
+      }
+    }
+  }
+}

@@ -21,7 +21,7 @@ A robust chess engine module for the ChessPal gaming platform, powered by Stockf
 ## Prerequisites
 
 - Python 3.10 or higher
-- Poetry for dependency management
+- Poetry for dependency management (install from [Poetry's documentation](https://python-poetry.org/docs/#installation))
 - Stockfish chess engine binary (version 17.1 recommended)
 
 ## Installation
@@ -32,7 +32,7 @@ git clone https://github.com/yourusername/dylangames-mcp-chess-engine.git
 cd dylangames-mcp-chess-engine
 ```
 
-2. Install dependencies using Poetry:
+2. Install dependencies and create virtual environment using Poetry:
 ```bash
 poetry install
 ```
@@ -52,13 +52,16 @@ poetry install
 
 ### Starting the Server
 
-1. Activate the Poetry environment:
+You can run the server in two ways:
+
+1. Using Poetry run (recommended):
 ```bash
-poetry shell
+poetry run chess-engine
 ```
 
-2. Run the FastMCP server:
+2. Or activate the Poetry shell first:
 ```bash
+poetry shell
 python -m dylangames_mcp_chess_engine.main
 ```
 
@@ -115,15 +118,45 @@ dylangames-mcp-chess-engine/
 ├── tests/                 # Test suite
 │   └── test_engine_wrapper.py
 ├── engines/              # Engine binaries directory
-├── pyproject.toml       # Dependencies and configuration
+├── pyproject.toml       # Poetry dependencies and configuration
+├── poetry.lock         # Locked dependencies
 ├── .env.example        # Environment variables example
 └── README.md          # This file
 ```
 
-### Running Tests
+### Development Workflow
 
+1. Install dependencies:
 ```bash
-poetry run pytest tests/ -v
+poetry install
+```
+
+2. Activate the virtual environment:
+```bash
+poetry shell
+```
+
+3. Run tests:
+```bash
+poetry run pytest
+```
+
+4. Run code quality tools:
+```bash
+poetry run black .
+poetry run isort .
+poetry run flake8
+```
+
+### Adding Dependencies
+
+To add new dependencies:
+```bash
+# Add a production dependency
+poetry add package-name
+
+# Add a development dependency
+poetry add --group dev package-name
 ```
 
 ### Code Quality

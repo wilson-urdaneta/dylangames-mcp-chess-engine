@@ -8,10 +8,10 @@
         "-m",
         "dylangames_mcp_chess_engine.main"
       ],
-      "cwd": "/Users/wilson/AI/new/dylangames/dylangames-mcp-chess-engine",
+      "cwd": "/path/to/package/dylangames-mcp-chess-engine",
       "transport": "stdio",
       "env": {
-        "ENGINE_PATH": "/home/akikax/AI/dylangames-engines/games/chess/stockfish/builds/17.1/linux/x86_64/stockfish"
+        "ENGINE_PATH": "/path/to/stockfish"
       }
     }
   }
