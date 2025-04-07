@@ -182,6 +182,57 @@ The codebase follows these standards:
    ```
 5. Submit a pull request
 
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment. The pipeline is triggered on:
+- Push to `main` branch
+- Pull requests to `main` branch
+- Tag pushes starting with `v` (e.g., v1.0.0)
+
+### Pipeline Stages
+
+1. **Lint** (`lint` job)
+   - Runs on Ubuntu latest
+   - Checks code formatting with Black
+   - Verifies import sorting with isort
+   - Performs code quality checks with flake8
+
+2. **Test** (`test` job)
+   - Runs on Ubuntu latest
+   - Installs Stockfish engine
+   - Executes the test suite with pytest
+
+3. **Package** (`package` job)
+   - Runs after successful lint and test
+   - Builds the Python package using Poetry
+   - Uploads build artifacts for release
+
+4. **Release** (`release` job)
+   - Runs only on version tags (e.g., v1.0.0)
+   - Creates GitHub releases
+   - Optionally publishes to PyPI (disabled by default)
+
+### Versioning and Tags
+
+The project uses semantic versioning with two types of tags:
+
+1. **External Releases** (e.g., `v1.0.0`)
+   - Public releases available to users
+   - Triggers full release process
+   - Creates GitHub release with release notes
+   - Can optionally publish to PyPI
+
+2. **Internal Releases** (e.g., `v1.0.0-internal`)
+   - Used for internal testing and development
+   - Skips the release job
+   - Useful for testing release process without affecting public releases
+
+### PyPI Publishing
+
+PyPI publishing is disabled by default. To enable:
+1. Set `ENABLE_PYPI` to `true` in the workflow file
+2. Configure `PYPI_TOKEN` secret in GitHub repository settings
+
 ## License
 
 GNU General Public License v3.0 - see [LICENSE](LICENSE) file for details.
