@@ -57,9 +57,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y stockfish
-          echo "STOCKFISH_PATH=$(which stockfish)" >> $GITHUB_ENV
+          STOCKFISH_PATH=$(which stockfish)
+          echo "ENGINE_PATH=$STOCKFISH_PATH" >> $GITHUB_ENV
+          echo "Using Stockfish at: $STOCKFISH_PATH"
 
       - name: Run tests
+        env:
+          ENGINE_PATH: ${{ env.ENGINE_PATH }}
         run: |
           poetry run python -m pytest tests/ -v
 
