@@ -1,6 +1,6 @@
 # ChessPal - Chess Engine Module
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -13,9 +13,10 @@ A robust chess engine module for the ChessPal gaming platform, powered by Stockf
 - Robust Stockfish engine integration with proper process management
 - FastMCP server for easy integration with ChessPal platform
 - UCI protocol implementation for chess move generation
-- Comprehensive test suite
+- Comprehensive test suite with TDD approach
 - Error handling and recovery mechanisms
 - Support for FEN positions and move history
+- Flexible engine binary configuration
 
 ## Prerequisites
 
@@ -36,11 +37,16 @@ cd dylangames-mcp-chess-engine
 poetry install
 ```
 
-3. Set up the Stockfish binary:
-   - Download Stockfish 17.1 from the official website
-   - Place the binary in `src/stockfish/` directory
-   - Make it executable: `chmod +x src/stockfish/stockfish`
-   - Set the environment variable: `export STOCKFISH_PATH=/path/to/stockfish`
+3. Configure the engine binary:
+   - Option 1: Set `ENGINE_PATH` environment variable to point to your Stockfish binary
+   - Option 2: Use the fallback configuration with these environment variables:
+     ```bash
+     # All variables have defaults, override as needed
+     export ENGINE_NAME=stockfish     # Default: stockfish
+     export ENGINE_VERSION=17.1       # Default: 17.1
+     export ENGINE_OS=linux           # Default: linux
+     export ENGINE_BINARY=stockfish   # Default: stockfish (include .exe for Windows)
+     ```
 
 ## Usage
 
@@ -53,7 +59,7 @@ poetry shell
 
 2. Run the FastMCP server:
 ```bash
-python -m src.main
+python -m dylangames_mcp_chess_engine.main
 ```
 
 The server will start and listen for incoming requests.
@@ -78,45 +84,22 @@ response = await mcp.get_best_move_tool({
 print(response.best_move_uci)  # e.g., "e2e4"
 ```
 
-### Using with Claude Desktop
+### Environment Variables
 
-1. Install and configure Claude Desktop:
-   ```bash
-   # Install the module globally
-   poetry build
-   pip install dist/*.whl
-   ```
+The module uses the following environment variables for configuration:
 
-2. Set up environment variables in Claude Desktop:
-   ```bash
-   export PYTHONPATH=/path/to/your/project
-   export STOCKFISH_PATH=/path/to/stockfish
-   ```
+```bash
+# Primary configuration
+ENGINE_PATH=/path/to/your/engine/binary
 
-3. Start a new conversation in Claude Desktop and use this template:
-   ```python
-   from mcp.server.fastmcp import FastMCP
+# Fallback configuration (used if ENGINE_PATH is not set/invalid)
+ENGINE_NAME=stockfish       # Default: stockfish
+ENGINE_VERSION=17.1         # Default: 17.1
+ENGINE_OS=linux            # Default: linux
+ENGINE_BINARY=stockfish    # Default: stockfish (include .exe for Windows)
+```
 
-   async def get_chess_move(fen: str, history: List[str] = None) -> str:
-       mcp = FastMCP("chess_engine")
-       response = await mcp.get_best_move_tool({
-           "fen": fen,
-           "move_history": history or []
-       })
-       return response.best_move_uci
-
-   # Example usage:
-   fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-   move = await get_chess_move(fen)
-   print(f"Best move: {move}")
-   ```
-
-4. Troubleshooting Claude Desktop:
-   - Ensure the module is installed globally
-   - Verify PYTHONPATH includes the project directory
-   - Check STOCKFISH_PATH points to valid binary
-   - Look for errors in chess_engine.log
-   - Use stderr output for debugging
+See `.env.example` for a complete example configuration.
 
 ## Development
 
@@ -125,21 +108,22 @@ print(response.best_move_uci)  # e.g., "e2e4"
 ```
 dylangames-mcp-chess-engine/
 ├── src/                    # Source code
-│   ├── __init__.py
-│   ├── main.py            # FastMCP server
-│   ├── engine_wrapper.py  # Stockfish wrapper
-│   └── stockfish/         # Stockfish binary
+│   └── dylangames_mcp_chess_engine/
+│       ├── __init__.py
+│       ├── main.py        # FastMCP server
+│       └── engine_wrapper.py  # Stockfish wrapper
 ├── tests/                 # Test suite
-│   └── tests.py
-├── pyproject.toml        # Dependencies
-├── README.md            # This file
-└── AGENT_PROMPT.md      # Detailed implementation guide
+│   └── test_engine_wrapper.py
+├── engines/              # Engine binaries directory
+├── pyproject.toml       # Dependencies and configuration
+├── .env.example        # Environment variables example
+└── README.md          # This file
 ```
 
 ### Running Tests
 
 ```bash
-poetry run pytest tests/tests.py -v
+poetry run pytest tests/ -v
 ```
 
 ### Code Quality
@@ -147,70 +131,27 @@ poetry run pytest tests/tests.py -v
 The codebase follows these standards:
 - Type hints for all functions
 - Comprehensive error handling
-- Detailed docstrings
-- PEP 8 compliance
+- Detailed docstrings (Google style)
+- PEP 8 compliance via Black, isort, and flake8
 - Proper resource management
 
-### Version Control and Releases
-
-1. Initialize git repository (if not already done):
-```bash
-git init
-```
-
-2. Add files to version control:
-```bash
-git add .
-git commit -m "Initial commit: Chess engine module implementation"
-```
-
-3. Push to remote repository:
-```bash
-git remote add origin https://github.com/yourusername/dylangames-mcp-chess-engine.git
-git push -u origin main
-```
-
-4. Creating Releases:
-   - For internal releases:
-     ```bash
-     git tag v0.1.0-internal
-     git push origin v0.1.0-internal
-     ```
-   - For public releases:
-     ```bash
-     git tag v0.1.0
-     git push origin v0.1.0
-     ```
-
-   This will trigger the GitHub Actions workflow which will:
-   - Run all tests
-   - Build the package
-   - Create a GitHub release with the built artifacts
-   - (Optional) Publish to PyPI if enabled
-
-5. PyPI Publishing:
-   PyPI publishing is disabled by default. To enable it:
-   - Create a PyPI account and generate an API token
-   - Add the token to your GitHub repository secrets as `PYPI_TOKEN`
-   - Add `ENABLE_PYPI` secret with value `true` to your GitHub repository
-
-## Contributing
+### Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests
+4. Run tests and linters:
+   ```bash
+   poetry run black .
+   poetry run isort .
+   poetry run flake8
+   poetry run pytest
+   ```
 5. Submit a pull request
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-- Stockfish Chess Engine team
-- FastMCP developers
-- DylanGames gaming platform team
+GNU General Public License v3.0 - see [LICENSE](LICENSE) file for details.
 
 ## Support
 

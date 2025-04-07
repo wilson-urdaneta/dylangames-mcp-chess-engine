@@ -32,26 +32,30 @@ _initialized: bool = False
 def _get_engine_path() -> str:
     """
     Get the path to the engine binary.
-    
-    The function first checks ENGINE_PATH environment variable. If not set or invalid,
-    it falls back to constructing a path using the following environment variables
-    (all with defaults):
+
+    The function first checks ENGINE_PATH environment variable. If not set or
+    invalid, it falls back to constructing a path using the following
+    environment variables (all with defaults):
     - ENGINE_NAME (default: "stockfish")
     - ENGINE_VERSION (default: "17.1")
     - ENGINE_OS (default: "linux")
     - ENGINE_BINARY (default: "stockfish")
-    
+
     The constructed path is: engines/{NAME}/{VERSION}/{OS}/{BINARY}
-    
+
     Returns:
         str: Path to the engine binary
-        
+
     Raises:
         EngineBinaryError: If the binary is not found or not executable
     """
     # Try ENGINE_PATH first
     engine_path = os.environ.get("ENGINE_PATH")
-    if engine_path and os.path.isfile(engine_path) and os.access(engine_path, os.X_OK):
+    if (
+        engine_path
+        and os.path.isfile(engine_path)
+        and os.access(engine_path, os.X_OK)
+    ):
         logger.info(f"Using engine binary from ENGINE_PATH: {engine_path}")
         return engine_path
 
@@ -64,15 +68,26 @@ def _get_engine_path() -> str:
     if not engine_binary:
         raise EngineBinaryError("Engine binary name cannot be empty")
 
-    # Construct fallback path
-    fallback_path = Path(__file__).parent.parent / "engines" / engine_name / engine_version / engine_os / engine_binary
+    # Construct fallback path - look in root directory
+    fallback_path = (
+        Path(__file__).parent.parent.parent
+        / "engines"
+        / engine_name
+        / engine_version
+        / engine_os
+        / engine_binary
+    )
     fallback_path_str = str(fallback_path)
 
     if not os.path.isfile(fallback_path_str):
-        raise EngineBinaryError(f"Engine binary not found at {fallback_path_str}")
+        raise EngineBinaryError(
+            f"Engine binary not found at {fallback_path_str}"
+        )
 
     if not os.access(fallback_path_str, os.X_OK):
-        raise EngineBinaryError(f"Engine binary is not executable: {fallback_path_str}")
+        raise EngineBinaryError(
+            f"Engine binary is not executable: {fallback_path_str}"
+        )
 
     logger.info(f"Using fallback engine binary: {fallback_path_str}")
     return fallback_path_str

@@ -8,13 +8,13 @@ packages = [
     { include = "dylangames_mcp_chess_engine", from = "src" },
     { include = "tests", from = "." }
 ]
-license = "MIT"
+license = "GPL-3.0-or-later"
 repository = "https://github.com/yourusername/dylangames-mcp-chess-engine"
 keywords = ["chess", "stockfish", "mcp", "chesspal"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Topic :: Games/Entertainment :: Board Games",
