@@ -62,4 +62,4 @@ If you encounter issues:
 1. Verify the binary exists in the correct directory
 2. Check file permissions
 3. Ensure the binary is compatible with your OS
-4. Verify the binary version matches the expected version 
+4. Verify the binary version matches the expected version

@@ -12,7 +12,9 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
 
 from .engine_wrapper import (
+    EngineBinaryError,
     StockfishError,
+    _get_engine_path,
     get_best_move,
     initialize_engine,
     stop_engine,
@@ -82,14 +84,13 @@ def setup_environment():
         logger.error(f"pyproject.toml not found at {pyproject_path}")
         raise RuntimeError(f"pyproject.toml not found at {pyproject_path}")
 
-    # Verify Stockfish path
-    stockfish_path = os.environ.get("STOCKFISH_PATH")
-    if not stockfish_path:
-        logger.warning("STOCKFISH_PATH not set")
-    else:
-        logger.info(f"STOCKFISH_PATH: {stockfish_path}")
-        if not os.path.isfile(stockfish_path):
-            logger.error(f"Stockfish binary not found at {stockfish_path}")
+    # Verify engine path using the new logic
+    try:
+        engine_path = _get_engine_path()
+        logger.info(f"Engine path resolved: {engine_path}")
+    except EngineBinaryError as e:
+        logger.error(f"Engine binary error: {e}")
+        # Don't raise here, let the application handle it when needed
 
     return logger
 
