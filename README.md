@@ -88,7 +88,7 @@ async def get_best_move():
         async with ClientSession(*streams) as session:
             # Initialize the session
             await session.initialize()
-            
+
             # Call the tool
             result = await session.call_tool('get_best_move_tool', {
                 "request": {
@@ -96,7 +96,7 @@ async def get_best_move():
                     "move_history": []
                 }
             })
-            
+
             print(f"Best move: {result.best_move_uci}")  # e.g., "e2e4"
 ```
 

@@ -162,8 +162,6 @@ async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
         return ChessMoveResponse(best_move_uci=best_move)
     except StockfishError as e:
         logger.error(f"Engine error: {e}")
-        # You might need to return an MCP error format instead of raising HTTPException
-        # Check FastMCP docs for error handling in tools. For now, keep HTTPException.
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
@@ -172,7 +170,6 @@ async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
 
 # --- Main execution block using mcp.run() ---
 if __name__ == "__main__":
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Chess Engine MCP Server")
     parser.add_argument(
         "--transport",
@@ -182,10 +179,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # Start the server with the specified transport
     if args.transport == "stdio":
         logger.info("Starting MCP server in stdio mode...")
         mcp_app.run(transport="stdio")
     else:
-        logger.info("Starting MCP server in SSE mode on 127.0.0.1:8001...")
-        mcp_app.run(transport="sse", host="127.0.0.1", port=8001)
+        logger.info("Starting MCP server in SSE mode...")
+        logger.info("Server address: 127.0.0.1:8001")
+        mcp_app.run(transport="sse")
