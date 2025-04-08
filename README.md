@@ -52,20 +52,13 @@ poetry install
 
 ### Starting the Server
 
-You can run the server in two ways:
+The server uses FastMCP with Server-Sent Events (SSE) transport for communication. You can start it using:
 
-1. Using Poetry run (recommended):
 ```bash
-poetry run chess-engine
+poetry run python -m dylangames_mcp_chess_engine.main
 ```
 
-2. Or activate the Poetry shell first:
-```bash
-poetry shell
-python -m dylangames_mcp_chess_engine.main
-```
-
-The server will start and listen for incoming requests.
+This command starts the MCP server, which listens for SSE connections on the configured host and port (default: 127.0.0.1:8001). Clients should connect using an MCP SSE client library to the `/sse` endpoint (e.g., http://127.0.0.1:8001/sse).
 
 ### API Endpoints
 
@@ -73,18 +66,28 @@ The module exposes the following endpoint through FastMCP:
 
 - `get_best_move_tool`: Get the best move for a given chess position
 
-Example request:
+Example request using the MCP SSE client:
 ```python
-from mcp import FastMCP
+from mcp.client.sse import sse_client
+from mcp import ClientSession
 
-mcp = FastMCP("chess_engine")
-
-response = await mcp.get_best_move_tool({
-    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    "move_history": []
-})
-
-print(response.best_move_uci)  # e.g., "e2e4"
+async def get_best_move():
+    # Connect to the SSE endpoint
+    async with sse_client("http://127.0.0.1:8001/sse", timeout=10.0) as streams:
+        # Create an MCP session
+        async with ClientSession(*streams) as session:
+            # Initialize the session
+            await session.initialize()
+            
+            # Call the tool
+            result = await session.call_tool('get_best_move_tool', {
+                "request": {
+                    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                    "move_history": []
+                }
+            })
+            
+            print(f"Best move: {result.best_move_uci}")  # e.g., "e2e4"
 ```
 
 ### Environment Variables

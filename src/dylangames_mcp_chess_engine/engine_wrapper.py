@@ -253,7 +253,7 @@ def stop_engine() -> None:
             logger.info("Stopping engine process...")
             if _engine_process.poll() is None:
                 _send_command("quit")
-                _engine_process.wait(timeout=2.0)
+                _engine_process.wait(timeout=5.0)
         except Exception as e:
             logger.warning(f"Error during graceful shutdown: {e}")
             try:
