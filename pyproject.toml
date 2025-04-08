@@ -42,7 +42,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-chess-engine = "dylangames_mcp_chess_engine.main:main"
+chesspal-mcp-engine = "dylangames_mcp_chess_engine.main:main"
 
 [tool.black]
 line-length = 79
