@@ -115,7 +115,9 @@ class ChessMoveResponse(BaseModel):
 
 # --- Lifespan Manager ---
 @asynccontextmanager
-async def lifespan(server: FastMCP) -> AsyncIterator[None]:  # Type hint uses FastMCP
+async def lifespan(
+    server: FastMCP,
+) -> AsyncIterator[None]:  # Type hint uses FastMCP
     """Manage the lifespan of the MCP application."""
     # This will be used by FastMCP's own run method
     try:
@@ -186,8 +188,4 @@ if __name__ == "__main__":
         mcp_app.run(transport="stdio")
     else:
         logger.info("Starting MCP server in SSE mode on 127.0.0.1:8001...")
-        mcp_app.run(
-            transport="sse",
-            host="127.0.0.1",
-            port=8001
-        )
+        mcp_app.run(transport="sse", host="127.0.0.1", port=8001)
