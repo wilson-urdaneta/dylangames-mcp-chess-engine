@@ -188,4 +188,4 @@ if __name__ == "__main__":
         mcp_app.run(transport="stdio")
     else:
         logger.info("Starting MCP server in SSE mode on 127.0.0.1:8001...")
-        mcp_app.run(transport="sse", host="127.0.0.1", port=8001)
+        mcp_app.run(transport="sse")
