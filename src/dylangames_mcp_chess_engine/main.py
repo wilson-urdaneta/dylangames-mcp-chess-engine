@@ -1,12 +1,12 @@
 """Provide FastMCP server for the Chess Engine module."""
 
+import argparse
 import logging
 import sys
-import argparse
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import List, AsyncIterator  # Added AsyncIterator
+from typing import AsyncIterator, List
 
 # Removed FastAPI import, kept HTTPException for tool error handling
 from fastapi import HTTPException  # Keep for now, see tool error handling
@@ -115,9 +115,7 @@ class ChessMoveResponse(BaseModel):
 
 # --- Lifespan Manager ---
 @asynccontextmanager
-async def lifespan(
-    server: FastMCP,
-) -> AsyncIterator[None]:  # Type hint uses FastMCP
+async def lifespan(server: FastMCP) -> AsyncIterator[None]:  # Type hint uses FastMCP
     """Manage the lifespan of the MCP application."""
     # This will be used by FastMCP's own run method
     try:
@@ -188,4 +186,8 @@ if __name__ == "__main__":
         mcp_app.run(transport="stdio")
     else:
         logger.info("Starting MCP server in SSE mode on 127.0.0.1:8001...")
-        mcp_app.run(transport="sse")
+        mcp_app.run(
+            transport="sse",
+            host="127.0.0.1",
+            port=8001
+        )
