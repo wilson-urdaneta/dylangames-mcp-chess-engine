@@ -1,17 +1,19 @@
-# ChessPal - Chess Engine Module
+# ChessPal Chess Engine - A Stockfish-powered chess engine exposed as an MCP server using FastMCP
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![PyPI version](https://img.shields.io/pypi/v/chesspal-mcp-engine.svg)](https://pypi.org/project/chesspal-mcp-engine/)
 [![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI/CD](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions)
 
-A robust chess engine module for the ChessPal gaming platform, powered by Stockfish and FastMCP. This module provides a reliable interface to the Stockfish chess engine through a FastAPI server, making it easy to integrate chess functionality into your applications.
+A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project.
 
 ## Features
 
 - Robust Stockfish engine integration with proper process management
-- FastMCP server for easy integration with ChessPal platform
+- Exposes engine functionality via the Model Context Protocol (MCP) using FastMCP.
+- Supports both SSE and stdio MCP transports for client interaction.
 - UCI protocol implementation for chess move generation
 - Comprehensive test suite with TDD approach
 - Error handling and recovery mechanisms
@@ -26,9 +28,17 @@ A robust chess engine module for the ChessPal gaming platform, powered by Stockf
 
 ## Installation
 
+Install the published package from PyPI using pip:
+
+```bash
+pip install chesspal-mcp-engine
+```
+
+Installation for development
+
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/dylangames-mcp-chess-engine.git
+git clone https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine.git
 cd dylangames-mcp-chess-engine
 ```
 

@@ -1,15 +1,14 @@
 [tool.poetry]
-name = "chess_engine"
+name = "chesspal-mcp-engine"
 version = "0.1.0"
-description = "Chess Engine module for ChessPal using Stockfish and FastMCP"
-authors = ["DylanGames Team"]
+description = "A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project."
+authors = ["Wilson Urdaneta <wilson.urdaneta@gmail.com> (DylanGames)"]
 readme = "README.md"
 packages = [
-    { include = "dylangames_mcp_chess_engine", from = "src" },
-    { include = "tests", from = "." }
+    { include = "dylangames_mcp_chess_engine", from = "src" }
 ]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/yourusername/dylangames-mcp-chess-engine"
+repository = "https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine"
 keywords = ["chess", "stockfish", "mcp", "chesspal"]
 classifiers = [
     "Development Status :: 4 - Beta",
