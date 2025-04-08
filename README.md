@@ -113,6 +113,10 @@ ENGINE_NAME=stockfish       # Default: stockfish
 ENGINE_VERSION=17.1         # Default: 17.1
 ENGINE_OS=linux            # Default: linux
 ENGINE_BINARY=stockfish    # Default: stockfish (include .exe for Windows)
+
+# MCP Server Configuration
+MCP_HOST=127.0.0.1        # Default: 127.0.0.1
+MCP_PORT=8001             # Default: 8001
 ```
 
 See `.env.example` for a complete example configuration.
@@ -152,6 +156,7 @@ poetry shell
 3. Run tests:
 ```bash
 poetry run pytest
+poetry run pytest tests/ -v
 ```
 
 4. Run code quality tools:
@@ -159,6 +164,30 @@ poetry run pytest
 poetry run black .
 poetry run isort .
 poetry run flake8
+poetry run pre-commit run --all-files
+```
+
+5. Using the mcp inspector:
+```bash
+poetry run mcp dev src/dylangames_mcp_chess_engine/main.py
+
+# In the inspector UI
+# STDIO configuration
+Command: poetry
+Arguments: run python -m dylangames_mcp_chess_engine.main --transport stdio
+
+# SSE
+# In a separate terminal run the app in SSE mode
+poetry run python -m dylangames_mcp_chess_engine.main
+# In the mcp inspector UI
+Transport Type > SSE
+```
+
+```json
+{
+  "fen": "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+  "move_history": []
+}
 ```
 
 ### Adding Dependencies

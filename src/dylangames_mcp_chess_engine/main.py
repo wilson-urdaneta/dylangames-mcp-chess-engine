@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
@@ -13,7 +14,7 @@ from fastapi import HTTPException  # Keep for now, see tool error handling
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
 
-from .engine_wrapper import (
+from dylangames_mcp_chess_engine.engine_wrapper import (
     EngineBinaryError,
     StockfishError,
     _get_engine_path,
@@ -38,7 +39,7 @@ def setup_environment():
 
     # Create handlers
     stream_handler = logging.StreamHandler(sys.stderr)
-    stream_handler.setLevel(logging.INFO)
+    stream_handler.setLevel(logging.WARNING)
 
     main_file_handler = RotatingFileHandler(
         logs_dir / "chess_engine.log",
@@ -46,11 +47,11 @@ def setup_environment():
         backupCount=5,
         encoding="utf-8",
     )
-    main_file_handler.setLevel(logging.INFO)
+    main_file_handler.setLevel(logging.DEBUG)
 
     error_file_handler = RotatingFileHandler(
         logs_dir / "chess_engine.error.log",
-        maxBytes=10 * 1024 * 1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MBu
         backupCount=5,
         encoding="utf-8",
     )
@@ -64,7 +65,7 @@ def setup_environment():
 
     # Configure root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(logging.DEBUG)
     # Clear existing handlers if necessary (e.g., if run multiple times)
     if root_logger.hasHandlers():
         root_logger.handlers.clear()
@@ -97,6 +98,11 @@ def setup_environment():
 
 # Initialize logging and environment
 logger = setup_environment()
+
+# Configure MCP server settings from environment variables
+bind_host = os.environ.get("MCP_HOST", "127.0.0.1")
+bind_port = int(os.environ.get("MCP_PORT", "8001"))
+logger.info(f"Configuring FastMCP to use host='{bind_host}' port={bind_port}")
 
 
 # Pydantic models remain the same
@@ -133,14 +139,16 @@ async def lifespan(
 
 # --- Create FastMCP App with Lifespan ---
 # Define the MCP application instance
-mcp_app = FastMCP(
-    "chess_engine", lifespan=lifespan, port=8001  # Configure port here
+mcp = FastMCP(
+    "chess_engine",
+    lifespan=lifespan,
+    host=bind_host,
+    port=bind_port,  # Use configured port
 )
 
 
 # --- Define MCP Tool ---
-# Decorator now uses the 'mcp_app' variable
-@mcp_app.tool()
+@mcp.tool()
 async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
     """
     Get the best chess move for a given position.
@@ -181,8 +189,8 @@ if __name__ == "__main__":
 
     if args.transport == "stdio":
         logger.info("Starting MCP server in stdio mode...")
-        mcp_app.run(transport="stdio")
+        mcp.run(transport="stdio")
     else:
         logger.info("Starting MCP server in SSE mode...")
-        logger.info("Server address: 127.0.0.1:8001")
-        mcp_app.run(transport="sse")
+        logger.info(f"Server address: {bind_host}:{bind_port}")
+        mcp.run(transport="sse")
