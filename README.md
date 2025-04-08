@@ -52,13 +52,23 @@ poetry install
 
 ### Starting the Server
 
-The server uses FastMCP with Server-Sent Events (SSE) transport for communication. You can start it using:
+The server uses FastMCP with support for both Server-Sent Events (SSE) and stdio transports. You can start it using:
+
+#### SSE Mode (Default)
 
 ```bash
 poetry run python -m dylangames_mcp_chess_engine.main
 ```
 
-This command starts the MCP server, which listens for SSE connections on the configured host and port (default: 127.0.0.1:8001). Clients should connect using an MCP SSE client library to the `/sse` endpoint (e.g., http://127.0.0.1:8001/sse).
+This command starts the MCP server in SSE mode, which listens for SSE connections on the configured host and port (default: 127.0.0.1:8001). This mode is ideal for programmatic clients and agents that need to interact with the chess engine over HTTP.
+
+#### Stdio Mode
+
+```bash
+poetry run python -m dylangames_mcp_chess_engine.main --transport stdio
+```
+
+This command starts the MCP server in stdio mode, which communicates through standard input/output. This mode is useful for direct integration with tools like Claude Desktop or for testing purposes.
 
 ### API Endpoints
 

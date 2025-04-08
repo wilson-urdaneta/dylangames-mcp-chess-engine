@@ -1,15 +1,15 @@
 """Provide FastMCP server for the Chess Engine module."""
 
 import logging
-import os
 import sys
+import argparse
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import List, AsyncIterator # Added AsyncIterator
+from typing import List, AsyncIterator  # Added AsyncIterator
 
 # Removed FastAPI import, kept HTTPException for tool error handling
-from fastapi import HTTPException # Keep for now, see tool error handling
+from fastapi import HTTPException  # Keep for now, see tool error handling
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
 
@@ -21,6 +21,7 @@ from .engine_wrapper import (
     initialize_engine,
     stop_engine,
 )
+
 
 # setup_environment function remains the same
 def setup_environment():
@@ -77,7 +78,6 @@ def setup_environment():
     # (Removed env_info logging for brevity, can be added back if needed)
     # logger.info("Environment Information:", extra={"env_info": env_info})
 
-
     # Verify pyproject.toml exists
     pyproject_path = project_root / "pyproject.toml"
     if not pyproject_path.exists():
@@ -94,41 +94,49 @@ def setup_environment():
 
     return logger
 
+
 # Initialize logging and environment
 logger = setup_environment()
+
 
 # Pydantic models remain the same
 class ChessMoveRequest(BaseModel):
     """Request model for chess move generation."""
+
     fen: str
     move_history: List[str] = []
 
+
 class ChessMoveResponse(BaseModel):
     """Response model for chess move generation."""
+
     best_move_uci: str
+
 
 # --- Lifespan Manager ---
 @asynccontextmanager
-async def lifespan(server: FastMCP) -> AsyncIterator[None]: # Type hint uses FastMCP
+async def lifespan(
+    server: FastMCP,
+) -> AsyncIterator[None]:  # Type hint uses FastMCP
     """Manage the lifespan of the MCP application."""
     # This will be used by FastMCP's own run method
     try:
         logger.info("Starting chess engine server (via MCP lifespan)...")
         initialize_engine()
         logger.info("Engine initialized successfully (via MCP lifespan)")
-        yield # MCP server runs here
+        yield  # MCP server runs here
     finally:
         logger.info("Stopping engine (via MCP lifespan)...")
         stop_engine()
         logger.info("Engine stopped (via MCP lifespan).")
 
+
 # --- Create FastMCP App with Lifespan ---
 # Define the MCP application instance
 mcp_app = FastMCP(
-    "chess_engine",
-    lifespan=lifespan,
-    port=8001 # Configure port here
+    "chess_engine", lifespan=lifespan, port=8001  # Configure port here
 )
+
 
 # --- Define MCP Tool ---
 # Decorator now uses the 'mcp_app' variable
@@ -161,11 +169,23 @@ async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
         logger.error(f"Unexpected error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 # --- Main execution block using mcp.run() ---
 if __name__ == "__main__":
-    logger.info("Starting MCP server via mcp_app.run()...")
-    # Use the built-in run method with SSE transport
-    # REMOVE host and port arguments from here
-    mcp_app.run(
-        transport='sse'
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Chess Engine MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["sse", "stdio"],
+        default="sse",
+        help="Transport mode for the MCP server (default: sse)",
     )
+    args = parser.parse_args()
+
+    # Start the server with the specified transport
+    if args.transport == "stdio":
+        logger.info("Starting MCP server in stdio mode...")
+        mcp_app.run(transport="stdio")
+    else:
+        logger.info("Starting MCP server in SSE mode on 127.0.0.1:8001...")
+        mcp_app.run(transport="sse", host="127.0.0.1", port=8001)
