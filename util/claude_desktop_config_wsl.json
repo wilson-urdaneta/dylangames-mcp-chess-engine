@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "chess_agent_wsl": {
+      "command": "wsl.exe",
+      "args": [
+        "--cd", "/home/path/to/dylangames-mcp-chess-agent",
+        "/home/path/to/.local/bin/poetry",
+        "run",
+        "python",
+        "-m",
+        "dylangames_mcp_chess_agent.main",
+        "--transport",
+        "stdio"
+      ],
+      "cwd": "C:\\Users\\Path\\To\\dylangames-mcp-chess-agent",
+      "transport": "stdio",
+      "env": {
+        "ENGINE_PATH": "/mnt/c/Users/path/to/stockfish"
+      }
+    }
+  }
+}

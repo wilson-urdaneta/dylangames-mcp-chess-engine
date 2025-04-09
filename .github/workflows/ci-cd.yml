@@ -10,7 +10,7 @@ on:
 
 # Environment variables
 env:
-  ENABLE_PYPI: false  # Set to true to enable PyPI publishing
+  ENABLE_PYPI: true  # Set to true to enable PyPI publishing
 
 jobs:
   lint:

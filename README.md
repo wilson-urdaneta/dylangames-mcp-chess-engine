@@ -1,17 +1,19 @@
-# ChessPal - Chess Engine Module
+# ChessPal Chess Engine - A Stockfish-powered chess engine exposed as an MCP server using FastMCP
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![PyPI version](https://img.shields.io/pypi/v/chesspal-mcp-engine.svg)](https://pypi.org/project/chesspal-mcp-engine/)
 [![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI/CD](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions)
 
-A robust chess engine module for the ChessPal gaming platform, powered by Stockfish and FastMCP. This module provides a reliable interface to the Stockfish chess engine through a FastAPI server, making it easy to integrate chess functionality into your applications.
+A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project.
 
 ## Features
 
 - Robust Stockfish engine integration with proper process management
-- FastMCP server for easy integration with ChessPal platform
+- Exposes engine functionality via the Model Context Protocol (MCP) using FastMCP.
+- Supports both SSE and stdio MCP transports for client interaction.
 - UCI protocol implementation for chess move generation
 - Comprehensive test suite with TDD approach
 - Error handling and recovery mechanisms
@@ -26,9 +28,17 @@ A robust chess engine module for the ChessPal gaming platform, powered by Stockf
 
 ## Installation
 
+Install the published package from PyPI using pip:
+
+```bash
+pip install chesspal-mcp-engine
+```
+
+Installation for development
+
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/dylangames-mcp-chess-engine.git
+git clone https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine.git
 cd dylangames-mcp-chess-engine
 ```
 
@@ -88,7 +98,7 @@ async def get_best_move():
         async with ClientSession(*streams) as session:
             # Initialize the session
             await session.initialize()
-            
+
             # Call the tool
             result = await session.call_tool('get_best_move_tool', {
                 "request": {
@@ -96,7 +106,7 @@ async def get_best_move():
                     "move_history": []
                 }
             })
-            
+
             print(f"Best move: {result.best_move_uci}")  # e.g., "e2e4"
 ```
 
@@ -113,6 +123,10 @@ ENGINE_NAME=stockfish       # Default: stockfish
 ENGINE_VERSION=17.1         # Default: 17.1
 ENGINE_OS=linux            # Default: linux
 ENGINE_BINARY=stockfish    # Default: stockfish (include .exe for Windows)
+
+# MCP Server Configuration
+MCP_HOST=127.0.0.1        # Default: 127.0.0.1
+MCP_PORT=8001             # Default: 8001
 ```
 
 See `.env.example` for a complete example configuration.
@@ -152,6 +166,7 @@ poetry shell
 3. Run tests:
 ```bash
 poetry run pytest
+poetry run pytest tests/ -v
 ```
 
 4. Run code quality tools:
@@ -159,6 +174,30 @@ poetry run pytest
 poetry run black .
 poetry run isort .
 poetry run flake8
+poetry run pre-commit run --all-files
+```
+
+5. Using the mcp inspector:
+```bash
+poetry run mcp dev src/dylangames_mcp_chess_engine/main.py
+
+# In the inspector UI
+# STDIO configuration
+Command: poetry
+Arguments: run python -m dylangames_mcp_chess_engine.main --transport stdio
+
+# SSE
+# In a separate terminal run the app in SSE mode
+poetry run python -m dylangames_mcp_chess_engine.main
+# In the mcp inspector UI
+Transport Type > SSE
+```
+
+```json
+{
+  "fen": "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+  "move_history": []
+}
 ```
 
 ### Adding Dependencies
