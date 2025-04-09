@@ -2,7 +2,7 @@
 name = "chesspal-mcp-engine"
 version = "0.1.0"
 description = "A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project."
-authors = ["Wilson Urdaneta <wilson.urdaneta@gmail.com> (DylanGames)"]
+authors = ["Wilson Urdaneta <wilson.urdaneta@gmail.com>"]
 readme = "README.md"
 packages = [
     { include = "dylangames_mcp_chess_engine", from = "src" }
