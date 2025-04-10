@@ -49,17 +49,21 @@ def test_custom_settings_from_env():
 
 
 def test_invalid_port():
-    """Test that invalid port raises validation error."""
-    with patch.dict(os.environ, {"MCP_PORT": "invalid"}, clear=True):
-        with pytest.raises(ValidationError):
-            Settings()
+    """Test that an invalid port raises a ValidationError."""
+    with (
+        patch.dict(os.environ, {"MCP_PORT": "invalid"}, clear=True),
+        pytest.raises(ValidationError),
+    ):
+        Settings()
 
 
 def test_invalid_log_level():
-    """Test that invalid log level raises validation error."""
-    with patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True):
-        with pytest.raises(ValidationError):
-            Settings()
+    """Test that an invalid log level raises a ValidationError."""
+    with (
+        patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True),
+        pytest.raises(ValidationError),
+    ):
+        Settings()
 
 
 def test_partial_override():

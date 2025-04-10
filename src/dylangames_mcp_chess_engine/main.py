@@ -1,4 +1,4 @@
-"""Provide FastMCP server for the Chess Engine module."""
+"""Main module for the MCP chess engine service."""
 
 import argparse
 import logging
@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import AsyncIterator, List, Optional
 
 import chess
-from fastapi import HTTPException
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
@@ -18,6 +17,8 @@ from dylangames_mcp_chess_engine.engine_wrapper import (
     StockfishEngine,
     StockfishError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def setup_environment():
@@ -73,8 +74,9 @@ def setup_environment():
     # Verify pyproject.toml exists
     pyproject_path = project_root / "pyproject.toml"
     if not pyproject_path.exists():
-        logger.error(f"pyproject.toml not found at {pyproject_path}")
-        raise RuntimeError(f"pyproject.toml not found at {pyproject_path}")
+        logger.error("pyproject.toml not found at %s", pyproject_path)
+        msg = f"pyproject.toml not found at {pyproject_path}"
+        raise RuntimeError(msg)
 
     # Test engine initialization
     try:
@@ -82,7 +84,7 @@ def setup_environment():
         engine.stop()
         logger.info("Engine test initialization successful")
     except StockfishError as e:
-        logger.error(f"Engine initialization error: {e}")
+        logger.error("Engine initialization error: %s", e)
         # Let initialization handle the error if path is bad
 
     return logger
@@ -247,12 +249,13 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
         request: The request containing the position to analyze.
 
     Returns:
-        A dictionary containing either {"result": {"status": str, "winner": Optional[str]}}
-        for success or {"error": str} for failure.
+        dict: A dictionary with either:
+            - {"result": {"status": str, "winner": Optional[str]}}
+            - {"error": str}
     """
     try:
         board = chess.Board(request.position)
-        
+
         if board.is_checkmate():
             status = "CHECKMATE"
             winner = "BLACK" if board.turn == chess.WHITE else "WHITE"
@@ -266,12 +269,7 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
             status = "IN_PROGRESS"
             winner = None
 
-        return {
-            "result": {
-                "status": status,
-                "winner": winner
-            }
-        }
+        return {"result": {"status": status, "winner": winner}}
     except ValueError as e:
         return {"error": f"Invalid FEN format: {str(e)}"}
     except Exception as e:
@@ -285,10 +283,7 @@ def main_cli():
         "--transport",
         choices=["sse", "stdio"],
         default="sse",  # Default to SSE
-        help=(
-            "Transport mode for the MCP server "
-            "(default: sse)"
-        ),
+        help=("Transport mode for the MCP server " "(default: sse)"),
     )
     args = parser.parse_args()
 
@@ -300,6 +295,22 @@ def main_cli():
 
     # Run the app instance using the selected transport
     app.run(transport=args.transport)
+
+
+def main() -> None:
+    """Start the MCP server with the configured settings."""
+    from dylangames_mcp_chess_engine.config import Settings
+
+    settings = Settings()  # type: ignore
+    logging.basicConfig(
+        level=settings.log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger.info(
+        "Starting MCP server on port %s with log level %s",
+        settings.port,
+        settings.log_level,
+    )
 
 
 if __name__ == "__main__":

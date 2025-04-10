@@ -4,7 +4,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from dylangames_mcp_chess_engine.engine_wrapper import StockfishEngine, StockfishError
+from dylangames_mcp_chess_engine.engine_wrapper import (
+    StockfishEngine,
+    StockfishError,
+)
 from dylangames_mcp_chess_engine.main import (
     ChessMoveRequest,
     PositionRequest,
@@ -95,12 +98,7 @@ async def test_game_status_tool_in_progress(test_positions):
     """Test game status detection for an ongoing game."""
     request = PositionRequest(position=test_positions["STARTING_FEN"])
     response = await get_game_status_tool(request)
-    assert response == {
-        "result": {
-            "status": "IN_PROGRESS",
-            "winner": None
-        }
-    }
+    assert response == {"result": {"status": "IN_PROGRESS", "winner": None}}
 
 
 @pytest.mark.asyncio
@@ -108,12 +106,7 @@ async def test_game_status_tool_checkmate(test_positions):
     """Test game status detection for a checkmate position."""
     request = PositionRequest(position=test_positions["CHECKMATE_FEN"])
     response = await get_game_status_tool(request)
-    assert response == {
-        "result": {
-            "status": "CHECKMATE",
-            "winner": "BLACK"
-        }
-    }
+    assert response == {"result": {"status": "CHECKMATE", "winner": "BLACK"}}
 
 
 @pytest.mark.asyncio
@@ -121,12 +114,7 @@ async def test_game_status_tool_stalemate(test_positions):
     """Test game status detection for a stalemate position."""
     request = PositionRequest(position=test_positions["STALEMATE_FEN"])
     response = await get_game_status_tool(request)
-    assert response == {
-        "result": {
-            "status": "STALEMATE",
-            "winner": None
-        }
-    }
+    assert response == {"result": {"status": "STALEMATE", "winner": None}}
 
 
 @pytest.mark.asyncio
@@ -136,12 +124,7 @@ async def test_game_status_tool_insufficient_material(test_positions):
         position=test_positions["INSUFFICIENT_MATERIAL_FEN"]
     )
     response = await get_game_status_tool(request)
-    assert response == {
-        "result": {
-            "status": "DRAW",
-            "winner": None
-        }
-    }
+    assert response == {"result": {"status": "DRAW", "winner": None}}
 
 
 @pytest.mark.asyncio
@@ -161,8 +144,7 @@ async def test_get_best_move_tool_success(test_positions):
 
     with patch("dylangames_mcp_chess_engine.main._engine", mock_engine):
         request = ChessMoveRequest(
-            fen=test_positions["STARTING_FEN"],
-            move_history=[]
+            fen=test_positions["STARTING_FEN"], move_history=[]
         )
         response = await get_best_move_tool(request)
         assert response == {"result": {"best_move_uci": "e2e4"}}
@@ -179,8 +161,7 @@ async def test_get_best_move_tool_engine_error(test_positions):
 
     with patch("dylangames_mcp_chess_engine.main._engine", mock_engine):
         request = ChessMoveRequest(
-            fen=test_positions["STARTING_FEN"],
-            move_history=[]
+            fen=test_positions["STARTING_FEN"], move_history=[]
         )
         response = await get_best_move_tool(request)
         assert "error" in response
@@ -193,7 +174,7 @@ async def test_get_best_move_tool_not_initialized():
     with patch("dylangames_mcp_chess_engine.main._engine", None):
         request = ChessMoveRequest(
             fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            move_history=[]
+            move_history=[],
         )
         response = await get_best_move_tool(request)
         assert "error" in response

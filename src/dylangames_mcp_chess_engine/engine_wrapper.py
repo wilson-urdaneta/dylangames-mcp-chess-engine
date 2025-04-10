@@ -147,8 +147,7 @@ class StockfishEngine:
                     if until and responses:
                         return responses
                     raise StockfishError(
-                        "Timeout waiting for response "
-                        f"(waited {timeout}s)"
+                        "Timeout waiting for response " f"(waited {timeout}s)"
                     )
 
                 if select.select([self.process.stdout], [], [], 0.1)[0]:

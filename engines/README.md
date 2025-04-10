@@ -37,10 +37,10 @@ engines/
    ```bash
    # Ubuntu/Debian
    sudo apt install stockfish
-   
+
    # macOS
    brew install stockfish
-   
+
    # Windows (using Chocolatey)
    choco install stockfish
    ```

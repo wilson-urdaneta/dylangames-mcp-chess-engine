@@ -1,4 +1,4 @@
-"""Integration tests for the chess engine MCP server."""
+"""Integration tests for the MCP chess engine service."""
 
 import asyncio
 import json
@@ -11,8 +11,7 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
-from mcp import ClientSession, types
-from mcp.client.sse import sse_client
+from httpx import AsyncClient
 
 
 def setup_test_logging():
@@ -81,202 +80,47 @@ def logs_dir():
 
 
 @pytest_asyncio.fixture
-async def run_server(logs_dir):
-    """Start the MCP server as a subprocess using python -m."""
-    logger = logging.getLogger("test_fixture")
+async def run_server():
+    """Start the MCP server as a subprocess."""
+    # Start the server
+    server_process = subprocess.Popen(
+        [sys.executable, "-m", "dylangames_mcp_chess_engine.main"],
+        env=os.environ.copy(),
+    )
 
-    # Check for Stockfish binary before starting server
-    if not os.environ.get("ENGINE_PATH"):
-        msg = (
-            "Stockfish binary not available. "
-            "Set ENGINE_PATH to run this test."
-        )
-        pytest.skip(msg)
-
-    process = None
-    module_path = "dylangames_mcp_chess_engine.main"
-
-    # Set test-specific environment variables
-    test_env = os.environ.copy()
-    test_env.update({
-        "MCP_HOST": "127.0.0.1",
-        "MCP_PORT": "8001",
-        "LOG_LEVEL": "DEBUG",
-        "PYTHON_ENV": "test"
-    })
-
-    cmd = [sys.executable, "-m", module_path]
-    logger.info(f"Starting server with command: {' '.join(cmd)}")
+    # Wait for server to start
+    await asyncio.sleep(2)
 
     try:
-        # Prepare process arguments
-        process_args = dict(
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=test_env,
-            text=True,
-            bufsize=1
-        )
-        # Add universal_newlines separately to avoid line length issue
-        process_args['universal_newlines'] = True
-        process = subprocess.Popen(cmd, **process_args)
-
-        logger.info("Waiting for server to initialize...")
-
-        # Wait for server to be ready by checking stderr for
-        # initialization message
-        ready = False
-        error_lines = []
-        engine_error = False
-
-        for _ in range(30):  # Try for 30 seconds
-            if process.poll() is not None:
-                stderr = process.stderr.read()
-                error_lines.extend(stderr.splitlines())
-                msg = (
-                    f"Server process terminated unexpectedly with code "
-                    f"{process.returncode}\n"
-                    f"Error output:\n" + "\n".join(error_lines)
-                )
-                raise RuntimeError(msg)
-
-            while True:
-                line = process.stderr.readline()
-                if not line:
-                    break
-
-                line = line.strip()
-                error_lines.append(line)
-
-                # Check for engine initialization success
-                if "Engine initialized successfully" in line:
-                    ready = True
-                    break
-
-                # Check for engine initialization failure
-                if "Failed to initialize engine" in line:
-                    engine_error = True
-                    break
-
-            if ready or engine_error:
-                break
-
-            await asyncio.sleep(1)
-
-        if engine_error:
-            process.terminate()
-            msg = "Failed to initialize Stockfish engine:\n" + "\n".join(
-                error_lines
-            )
-            pytest.skip(msg)
-
-        if not ready:
-            process.terminate()
-            stderr = process.stderr.read()
-            error_lines.extend(stderr.splitlines())
-            msg = (
-                "Server failed to initialize within timeout.\n"
-                "Error output:\n" + "\n".join(error_lines)
-            )
-            raise RuntimeError(msg)
-
-        logger.info("Server initialization complete.")
         yield
-
     finally:
-        logger.info("Shutting down server process...")
-        if process and process.poll() is None:
-            try:
-                if sys.platform == "win32":
-                    process.send_signal(signal.CTRL_C_EVENT)
-                else:
-                    process.send_signal(signal.SIGINT)
-                process.wait(timeout=5)
-                msg = (
-                    "Server process exited gracefully "
-                    f"with code {process.returncode}"
-                )
-                logger.info(msg)
-            except subprocess.TimeoutExpired:
-                logger.warning(
-                    "Server process did not exit gracefully, killing."
-                )
-                process.kill()
-                process.wait()
-                logger.info("Server process killed.")
-            except Exception as e:
-                logger.error(f"Error during server shutdown: {e}")
-                if process.poll() is None:
-                    process.kill()
-                    process.wait()
-        elif process:
-            msg = (
-                "Server process already terminated "
-                f"with code {process.returncode}"
-            )
-            logger.info(msg)
-        print_logs()
+        # Stop the server
+        if sys.platform == "win32":
+            server_process.terminate()
+        else:
+            server_process.send_signal(signal.SIGTERM)
+        server_process.wait(timeout=5)
 
 
 @pytest.mark.asyncio
-async def test_http_get_best_move(run_server):
-    """Test the get_best_move tool via SSE transport."""
-    test_host = os.environ.get("MCP_HOST", "127.0.0.1")
-    test_port = os.environ.get("MCP_PORT", "8001")
-    sse_endpoint_url = f"http://{test_host}:{test_port}/sse"
-    tool_arguments = {
-        "request": {
-            "fen": (
-                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-            ),
-            "move_history": [],
-        }
-    }
+async def test_http_get_best_move(run_server: None) -> None:
+    """Test the get_best_move_tool via SSE transport."""
+    async with AsyncClient() as client:
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        response = await client.post(
+            "http://localhost:8080/tools/get_best_move_tool",
+            json={"fen": fen},
+            headers={"Accept": "text/event-stream"},
+        )
+        assert response.status_code == 200
 
-    try:
-        msg = f"Attempting to connect to SSE endpoint: {sse_endpoint_url}"
-        logging.info(msg)
-        async with sse_client(sse_endpoint_url, timeout=15.0) as streams:
-            logging.info("SSE client connected.")
-            async with ClientSession(*streams) as session:
-                logging.info("MCP Session created.")
-                await session.initialize()
-                logging.info("MCP Session initialized.")
+        # Parse SSE response
+        events = []
+        for line in response.text.split("\n"):
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
 
-                msg = (
-                    f"Calling tool 'get_best_move_tool' with args: "
-                    f"{tool_arguments}"
-                )
-                logging.info(msg)
-                result = await session.call_tool(
-                    "get_best_move_tool", tool_arguments
-                )
-                logging.info("Tool call finished.")
-
-                print(f"Tool Result: {result}")
-
-                assert result is not None
-                assert hasattr(result, "content")
-                assert isinstance(result.content, list)
-                assert len(result.content) > 0
-                assert isinstance(result.content[0], types.TextContent)
-                assert hasattr(result.content[0], "text")
-
-                result_text = result.content[0].text
-                print(f"Result content text: {result_text}")
-                try:
-                    result_data = json.loads(result_text)
-                    assert "best_move_uci" in result_data
-                    assert isinstance(result_data["best_move_uci"], str)
-                    assert (
-                        len(result_data["best_move_uci"]) == 4
-                    )  # UCI moves are 4 characters
-                    msg = (
-                        "Best move verified in JSON: "
-                        f"{result_data['best_move_uci']}"
-                    )
-                    print(msg)
-                except json.JSONDecodeError as e:
-                    pytest.fail(f"Failed to decode JSON response: {e}")
-    except Exception as e:
-        pytest.fail(f"Test failed: {str(e)}")
+        assert len(events) > 0
+        result = events[-1]  # Get the last event
+        assert "best_move_uci" in result["result"]
+        assert len(result["result"]["best_move_uci"]) >= 4  # Valid UCI move
