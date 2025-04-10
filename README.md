@@ -60,53 +60,42 @@ poetry install
 
 ## Stockfish Binary Setup
 
-This package requires the Stockfish chess engine binary to be available. You have two options for setting up the binary:
+The ChessPal Chess Engine requires a Stockfish binary to run the server and integration tests. You have three options for setting up the binary:
 
-### Option 1: Environment Variable (Recommended)
+### Option 1: Set ENGINE_PATH (Recommended)
 
-1. Download the appropriate Stockfish binary for your system from the [official Stockfish website](https://stockfishchess.org/download/).
-2. Make the binary executable (Unix-like systems):
-   ```bash
-   chmod +x path/to/stockfish
-   ```
-3. Set the `ENGINE_PATH` environment variable to point to your Stockfish binary:
-   ```bash
-   # Unix-like systems
-   export ENGINE_PATH=/path/to/stockfish
+Point to any Stockfish executable on your system:
 
-   # Windows (PowerShell)
-   $env:ENGINE_PATH="C:\path\to\stockfish.exe"
-   ```
+```bash
+# Unix-like systems (binary from apt/brew or downloaded)
+export ENGINE_PATH=/usr/local/bin/stockfish
 
-### Option 2: Default Directory Structure
-
-Place the Stockfish binary in the default directory structure under the package installation:
-
-```
-engines/
-└── stockfish/
-    └── 17.1/
-        ├── linux/
-        │   └── stockfish
-        ├── macos/
-        │   └── stockfish
-        └── windows/
-            └── stockfish.exe
+# Windows (PowerShell)
+$env:ENGINE_PATH="C:\path\to\stockfish.exe"
 ```
 
-The package will automatically detect your operating system and use the appropriate binary.
+The binary can be:
+- System-installed via package managers (`apt install stockfish`, `brew install stockfish`)
+- Downloaded from [Stockfish releases](https://github.com/official-stockfish/Stockfish/releases)
+- Manually compiled from source
 
-### Platform Support
+### Option 2: Use engines/ Directory
 
-- Linux: `stockfish` binary in the `linux` directory
-- macOS: `stockfish` binary in the `macos` directory
-- Windows: `stockfish.exe` in the `windows` directory
+If `ENGINE_PATH` is not set, the server will look for the binary in a predefined directory structure:
 
-### Troubleshooting
+1. Download the official binary for your OS from [Stockfish releases](https://github.com/official-stockfish/Stockfish/releases)
+2. Place it in: `engines/stockfish/<version>/<os>/<binary_name>`
+   - See `engines/README.md` for the exact directory structure
+3. Set `ENGINE_OS` environment variable to match your system:
+   ```bash
+   export ENGINE_OS=macos    # For macOS
+   export ENGINE_OS=linux    # For Linux
+   export ENGINE_OS=windows  # For Windows
+   ```
 
-1. Ensure the binary has executable permissions on Unix-like systems.
-2. For custom binary locations, use the `ENGINE_PATH` environment variable.
-3. You can override OS detection by setting the `ENGINE_OS` environment variable to `linux`, `macos`, or `windows`.
+### Option 3: Build from Source (Advanced)
+
+Advanced users can compile Stockfish from source using our separate `dylangames-engine` repository. This option provides maximum control over the build configuration but requires C++ development experience.
 
 ## Usage
 
@@ -345,15 +334,28 @@ For issues and feature requests, please use the GitHub issue tracker.
 
 ## Running Tests
 
-The test suite includes both unit tests and integration tests. Integration tests require a working Stockfish binary.
+The project includes both unit tests and integration tests:
+
+### Running All Tests
 
 ```bash
-# Run all tests
-pytest
-
-# Run only unit tests (no Stockfish binary required)
-pytest -m "not integration"
-
-# Run only integration tests
-pytest -m integration
+poetry run pytest
 ```
+
+This runs the complete test suite. Note that integration tests require a Stockfish binary to be available through either Option 1 or 2 above.
+
+### Running Unit Tests Only
+
+```bash
+poetry run pytest -m "not integration"
+```
+
+This runs only the unit tests, where Stockfish interaction is mocked and no binary is required.
+
+### Test Categories
+
+- **Unit Tests**: Test individual components with mocked dependencies
+- **Integration Tests**: Test actual Stockfish binary interaction
+  - Require Stockfish binary (see setup options above)
+  - Test real engine initialization and move calculation
+  - Skip automatically if no binary is available

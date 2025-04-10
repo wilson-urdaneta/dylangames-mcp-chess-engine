@@ -5,12 +5,9 @@ import os
 import platform
 import select
 import subprocess
-import sys
 import time
 from pathlib import Path
-from typing import List, Optional
-
-from dylangames_mcp_chess_engine.config import settings
+from typing import List
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -18,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 def _get_engine_path() -> Path:
     """Get the path to the Stockfish engine binary.
-    
+
     Returns:
         Path: Path to the Stockfish binary
-        
+
     Raises:
         EngineBinaryError: If the binary cannot be found or accessed
     """
@@ -39,7 +36,7 @@ def _get_engine_path() -> Path:
 
     # Fallback to constructed path
     logger.info("ENGINE_PATH not set, attempting fallback path")
-    
+
     # Get OS - either from ENV or detect
     engine_os = os.environ.get("ENGINE_OS")
     if not engine_os:
@@ -53,32 +50,40 @@ def _get_engine_path() -> Path:
         else:
             raise EngineBinaryError(f"Unsupported platform: {system}")
         logger.info(f"No ENGINE_OS set, detected OS as: {engine_os}")
-    
+
     # Construct fallback path
     engine_name = os.environ.get("ENGINE_NAME", "stockfish")
     engine_version = os.environ.get("ENGINE_VERSION", "17.1")
     binary_name = "stockfish.exe" if engine_os == "windows" else "stockfish"
-    
+
     fallback_path = (
-        Path(__file__).parent.parent / "engines" / 
-        engine_name / engine_version / engine_os / binary_name
+        Path(__file__).parent.parent
+        / "engines"
+        / engine_name
+        / engine_version
+        / engine_os
+        / binary_name
     ).resolve()
-    
+
     if not fallback_path.is_file():
         raise EngineBinaryError(
-            f"Stockfish binary not found at fallback path: {fallback_path}\n"
+            "Stockfish binary not found at fallback path: "
+            f"{fallback_path}\n"
             "Please either:\n"
             "1. Set ENGINE_PATH to point to your Stockfish binary, or\n"
-            "2. Download the appropriate binary from https://github.com/official-stockfish/Stockfish/releases\n"
+            "2. Download the appropriate binary from "
+            "https://github.com/official-stockfish/Stockfish/releases\n"
             f"   and place it at {fallback_path}"
         )
-    
+
     if not os.access(fallback_path, os.X_OK):
         raise EngineBinaryError(
-            f"Stockfish binary at {fallback_path} exists but is not executable.\n"
-            "Please ensure the file has proper execute permissions."
+            "Stockfish binary at {path} exists but is not executable.\n"
+            "Please ensure the file has proper execute permissions.".format(
+                path=fallback_path
+            )
         )
-    
+
     logger.info(f"Using engine binary from fallback path: {fallback_path}")
     return fallback_path
 
@@ -97,12 +102,12 @@ class StockfishError(Exception):
 
 class StockfishEngine:
     """A class to manage interactions with the Stockfish chess engine."""
-    
+
     def __init__(self):
         """Initialize the Stockfish engine."""
         self.process = None
         self._initialize_engine()
-    
+
     def _send_command(self, command: str) -> None:
         """Send a command to the Stockfish engine."""
         if not self.process or self.process.poll() is not None:
@@ -115,8 +120,18 @@ class StockfishEngine:
         except BrokenPipeError as e:
             raise StockfishError(f"Failed to send command: {e}")
 
-    def _read_response(self, until: str = None, timeout: float = 2.0) -> List[str]:
-        """Read response from the Stockfish engine."""
+    def _read_response(
+        self, until: str = None, timeout: float = 2.0
+    ) -> List[str]:
+        """Read response from the Stockfish engine.
+
+        Args:
+            until: String to look for in response
+            timeout: Maximum time to wait for response
+
+        Returns:
+            List of response lines from the engine
+        """
         if not self.process or self.process.poll() is not None:
             raise StockfishError("Engine process is not running")
 
@@ -127,14 +142,18 @@ class StockfishEngine:
         try:
             while True:
                 if time.time() - start_time > timeout:
-                    # If we're looking for a specific response and haven't found it,
-                    # return what we have so far
+                    # If we're looking for a specific response and
+                    # haven't found it, return what we have so far
                     if until and responses:
                         return responses
-                    raise StockfishError(f"Timeout waiting for response (waited {timeout}s)")
+                    raise StockfishError(
+                        "Timeout waiting for response "
+                        f"(waited {timeout}s)"
+                    )
 
                 if select.select([self.process.stdout], [], [], 0.1)[0]:
-                    line = self.process.stdout.readline().decode().strip()
+                    line = self.process.stdout.readline()
+                    line = line.decode().strip()
                     if line:
                         logger.debug(f"Received: {line}")
                         responses.append(line)
@@ -145,7 +164,9 @@ class StockfishEngine:
                     # No new data for 1 second, assume engine is done
                     break
                 elif self.process.poll() is not None:
-                    raise StockfishError("Engine process terminated unexpectedly")
+                    raise StockfishError(
+                        "Engine process terminated unexpectedly"
+                    )
 
         except Exception as e:
             raise StockfishError(f"Error reading engine response: {e}")
@@ -183,7 +204,9 @@ class StockfishEngine:
             self._send_command("isready")
             responses = self._read_response(until="readyok", timeout=5.0)
             if not any(r.startswith("readyok") for r in responses):
-                raise StockfishError("Engine not responding to isready command")
+                raise StockfishError(
+                    "Engine not responding to isready command"
+                )
 
             logger.info("Engine initialized successfully")
 

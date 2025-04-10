@@ -3,10 +3,10 @@
 import asyncio
 import json
 import logging
+import os
 import signal
 import subprocess
 import sys
-import os
 from pathlib import Path
 
 import pytest
@@ -84,16 +84,18 @@ def logs_dir():
 async def run_server(logs_dir):
     """Start the MCP server as a subprocess using python -m."""
     logger = logging.getLogger("test_fixture")
-    
+
     # Check for Stockfish binary before starting server
     if not os.environ.get("ENGINE_PATH"):
-        pytest.skip(
-            "Stockfish binary not available. Set ENGINE_PATH to run this test."
+        msg = (
+            "Stockfish binary not available. "
+            "Set ENGINE_PATH to run this test."
         )
-    
+        pytest.skip(msg)
+
     process = None
     module_path = "dylangames_mcp_chess_engine.main"
-    
+
     # Set test-specific environment variables
     test_env = os.environ.copy()
     test_env.update({
@@ -102,77 +104,82 @@ async def run_server(logs_dir):
         "LOG_LEVEL": "DEBUG",
         "PYTHON_ENV": "test"
     })
-    
+
     cmd = [sys.executable, "-m", module_path]
     logger.info(f"Starting server with command: {' '.join(cmd)}")
 
     try:
-        process = subprocess.Popen(
-            cmd,
+        # Prepare process arguments
+        process_args = dict(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=test_env,
             text=True,
-            bufsize=1,
-            universal_newlines=True
+            bufsize=1
         )
+        # Add universal_newlines separately to avoid line length issue
+        process_args['universal_newlines'] = True
+        process = subprocess.Popen(cmd, **process_args)
 
         logger.info("Waiting for server to initialize...")
-        
-        # Wait for server to be ready by checking stderr for initialization message
+
+        # Wait for server to be ready by checking stderr for
+        # initialization message
         ready = False
         error_lines = []
         engine_error = False
-        
+
         for _ in range(30):  # Try for 30 seconds
             if process.poll() is not None:
                 stderr = process.stderr.read()
                 error_lines.extend(stderr.splitlines())
                 msg = (
-                    f"Server process terminated unexpectedly with code {process.returncode}\n"
+                    f"Server process terminated unexpectedly with code "
+                    f"{process.returncode}\n"
                     f"Error output:\n" + "\n".join(error_lines)
                 )
                 raise RuntimeError(msg)
-                
+
             while True:
                 line = process.stderr.readline()
                 if not line:
                     break
-                    
+
                 line = line.strip()
                 error_lines.append(line)
-                
+
                 # Check for engine initialization success
                 if "Engine initialized successfully" in line:
                     ready = True
                     break
-                    
+
                 # Check for engine initialization failure
                 if "Failed to initialize engine" in line:
                     engine_error = True
                     break
-                    
+
             if ready or engine_error:
                 break
-                
+
             await asyncio.sleep(1)
-            
+
         if engine_error:
             process.terminate()
-            pytest.skip(
-                "Failed to initialize Stockfish engine:\n" + 
-                "\n".join(error_lines)
+            msg = "Failed to initialize Stockfish engine:\n" + "\n".join(
+                error_lines
             )
-            
+            pytest.skip(msg)
+
         if not ready:
             process.terminate()
             stderr = process.stderr.read()
             error_lines.extend(stderr.splitlines())
-            raise RuntimeError(
+            msg = (
                 "Server failed to initialize within timeout.\n"
                 "Error output:\n" + "\n".join(error_lines)
             )
-            
+            raise RuntimeError(msg)
+
         logger.info("Server initialization complete.")
         yield
 
@@ -219,7 +226,9 @@ async def test_http_get_best_move(run_server):
     sse_endpoint_url = f"http://{test_host}:{test_port}/sse"
     tool_arguments = {
         "request": {
-            "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "fen": (
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+            ),
             "move_history": [],
         }
     }
@@ -234,9 +243,14 @@ async def test_http_get_best_move(run_server):
                 await session.initialize()
                 logging.info("MCP Session initialized.")
 
-                msg = f"Calling tool 'get_best_move_tool' with args: {tool_arguments}"
+                msg = (
+                    f"Calling tool 'get_best_move_tool' with args: "
+                    f"{tool_arguments}"
+                )
                 logging.info(msg)
-                result = await session.call_tool("get_best_move_tool", tool_arguments)
+                result = await session.call_tool(
+                    "get_best_move_tool", tool_arguments
+                )
                 logging.info("Tool call finished.")
 
                 print(f"Tool Result: {result}")
@@ -254,8 +268,13 @@ async def test_http_get_best_move(run_server):
                     result_data = json.loads(result_text)
                     assert "best_move_uci" in result_data
                     assert isinstance(result_data["best_move_uci"], str)
-                    assert len(result_data["best_move_uci"]) == 4  # UCI moves are 4 characters
-                    msg = f"Best move verified in JSON: {result_data['best_move_uci']}"
+                    assert (
+                        len(result_data["best_move_uci"]) == 4
+                    )  # UCI moves are 4 characters
+                    msg = (
+                        "Best move verified in JSON: "
+                        f"{result_data['best_move_uci']}"
+                    )
                     print(msg)
                 except json.JSONDecodeError as e:
                     pytest.fail(f"Failed to decode JSON response: {e}")

@@ -76,4 +76,4 @@ def test_partial_override():
         # Default values
         assert settings.ENGINE_NAME == "stockfish"
         assert settings.MCP_HOST == "127.0.0.1"
-        assert settings.LOG_LEVEL == "INFO" 
+        assert settings.LOG_LEVEL == "INFO"

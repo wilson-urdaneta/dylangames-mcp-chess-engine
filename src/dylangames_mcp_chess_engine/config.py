@@ -1,9 +1,9 @@
 """Configuration management for the chess engine service."""
 
+import os
 import platform
 from enum import Enum
 from typing import Optional
-import os
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -33,13 +33,22 @@ class Settings(BaseSettings):
     # Engine settings
     ENGINE_PATH: Optional[str] = Field(
         None,
-        description="Optional path to the engine binary. If not set, will use built-in path.",
+        description=(
+            "Optional path to the engine binary. "
+            "If not set, will use built-in path."
+        ),
     )
-    ENGINE_NAME: str = Field("stockfish", description="Name of the chess engine.")
-    ENGINE_VERSION: str = Field("17.1", description="Version of the chess engine.")
+    ENGINE_NAME: str = Field(
+        "stockfish", description="Name of the chess engine."
+    )
+    ENGINE_VERSION: str = Field(
+        "17.1", description="Version of the chess engine."
+    )
     ENGINE_OS: str = Field(
         default_factory=_get_default_os,
-        description="Operating system for the engine binary. Defaults to current OS.",
+        description=(
+            "Operating system for the engine binary. Defaults to current OS."
+        ),
     )
     ENGINE_BINARY: str = Field(
         "stockfish", description="Name of the engine binary file."
@@ -53,7 +62,8 @@ class Settings(BaseSettings):
 
     # Logging settings
     LOG_LEVEL: str = Field(
-        "INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)."
+        "INFO",
+        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).",
     )
 
     # Configure env file settings
@@ -68,7 +78,9 @@ class Settings(BaseSettings):
             return LogLevel[v.upper()].value
         except KeyError:
             raise ValueError(
-                f"Invalid log level: {v}. Must be one of: {', '.join(LogLevel.__members__)}"
+                "Invalid log level: {}. Must be one of: {}".format(
+                    v, ", ".join(LogLevel.__members__)
+                )
             )
 
     @field_validator("MCP_PORT")
@@ -87,5 +99,6 @@ def get_settings():
         return Settings(_env_file=None)
     return Settings()
 
+
 # Create a global settings instance
-settings = get_settings() 
+settings = get_settings()
