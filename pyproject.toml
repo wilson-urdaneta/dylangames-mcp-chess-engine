@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chesspal-mcp-engine"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project."
 authors = ["Wilson Urdaneta <wilson.urdaneta@gmail.com>"]
 readme = "README.md"
@@ -26,6 +26,7 @@ mcp = {version = "^1.2.0", extras = ["cli"]}
 python-chess = "^1.999"
 setuptools = "^69.2.0"
 uvicorn = {extras = ["standard"], version = "^0.34.0"}
+pydantic-settings = "^2.8.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"
@@ -72,3 +73,6 @@ exclude = [".git", "__pycache__", "build", "dist"]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 addopts = "-v"
+markers = [
+    "integration: marks tests as integration tests (require external dependencies like Stockfish binary)",
+]

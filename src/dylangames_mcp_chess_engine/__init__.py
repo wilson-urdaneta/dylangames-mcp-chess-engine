@@ -1,11 +1,5 @@
-"""Chess engine module for MCP."""
+"""Chess engine service for the MCP platform."""
 
-from .engine_wrapper import get_best_move, initialize_engine, stop_engine
-from .main import get_best_move_tool
+from .engine_wrapper import StockfishEngine, StockfishError
 
-__all__ = [
-    "initialize_engine",
-    "get_best_move",
-    "stop_engine",
-    "get_best_move_tool",
-]
+__all__ = ["StockfishEngine", "StockfishError"]

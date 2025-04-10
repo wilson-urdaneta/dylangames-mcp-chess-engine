@@ -2,27 +2,19 @@
 
 import argparse
 import logging
-import os
 import sys
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import AsyncIterator, List
+from typing import AsyncIterator, List, Optional
 
-from fastapi import (  # Keep for now while determining error handling
-    HTTPException,
-)
+import chess
+from fastapi import HTTPException
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from dylangames_mcp_chess_engine.engine_wrapper import (
-    EngineBinaryError,
-    StockfishError,
-    _get_engine_path,
-    get_best_move,
-    initialize_engine,
-    stop_engine,
-)
+from dylangames_mcp_chess_engine.config import settings
+from dylangames_mcp_chess_engine.engine_wrapper import StockfishEngine, StockfishError
 
 
 def setup_environment():
@@ -65,7 +57,7 @@ def setup_environment():
     error_file_handler.setFormatter(formatter)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(getattr(logging, settings.LOG_LEVEL))
 
     if root_logger.hasHandlers():
         root_logger.handlers.clear()
@@ -81,12 +73,13 @@ def setup_environment():
         logger.error(f"pyproject.toml not found at {pyproject_path}")
         raise RuntimeError(f"pyproject.toml not found at {pyproject_path}")
 
-    # Verify engine path using the new logic
+    # Test engine initialization
     try:
-        engine_path = _get_engine_path()
-        logger.info(f"Engine path resolved: {engine_path}")
-    except EngineBinaryError as e:
-        logger.error(f"Engine binary error: {e}")
+        engine = StockfishEngine()
+        engine.stop()
+        logger.info("Engine test initialization successful")
+    except StockfishError as e:
+        logger.error(f"Engine initialization error: {e}")
         # Let initialization handle the error if path is bad
 
     return logger
@@ -94,10 +87,10 @@ def setup_environment():
 
 logger = setup_environment()
 
-# Configure MCP server settings from environment variables
-bind_host = os.environ.get("MCP_HOST", "127.0.0.1")
-bind_port = int(os.environ.get("MCP_PORT", "8001"))
-logger.info(f"Configuring FastMCP to use host='{bind_host}' port={bind_port}")
+logger.info(f"Configuring FastMCP to use host='{settings.MCP_HOST}' port={settings.MCP_PORT}")
+
+# Global engine instance
+_engine: Optional[StockfishEngine] = None
 
 
 class ChessMoveRequest(BaseModel):
@@ -113,35 +106,73 @@ class ChessMoveResponse(BaseModel):
     best_move_uci: str
 
 
+class PositionRequest(BaseModel):
+    """Request model for position-based queries."""
+
+    position: str = Field(..., description="Board position in FEN format.")
+
+
+class ValidateMoveRequest(BaseModel):
+    """Request model for move validation."""
+
+    position: str = Field(..., description="Board position in FEN format.")
+    move: str = Field(..., description="Move in UCI format (e.g., 'e2e4').")
+
+
+class BoolResponse(BaseModel):
+    """Response model for boolean results."""
+
+    result: bool
+
+
+class ListResponse(BaseModel):
+    """Response model for list results."""
+
+    result: List[str]
+
+
+class GameStatusResponse(BaseModel):
+    """Response model for game status."""
+
+    status: str = Field(..., description="Game status (IN_PROGRESS, CHECKMATE, STALEMATE, DRAW...)")
+    winner: Optional[str] = Field(None, description="Winner ('WHITE', 'BLACK') if applicable, else null.")
+
+
 @asynccontextmanager
 async def lifespan(server: FastMCP) -> AsyncIterator[None]:
     """Manage the lifespan of the MCP application."""
+    global _engine
     try:
         logger.info("Starting chess engine server (via MCP lifespan)...")
-        initialize_engine()
+        _engine = StockfishEngine()
         logger.info("Engine initialized successfully (via MCP lifespan)")
         yield
     finally:
         logger.info("Stopping engine (via MCP lifespan)...")
-        stop_engine()
+        if _engine:
+            _engine.stop()
+            _engine = None
         logger.info("Engine stopped (via MCP lifespan).")
 
 
 app = FastMCP(
     "chess_engine",
     lifespan=lifespan,
-    host=bind_host,
-    port=bind_port,
+    host=settings.MCP_HOST,
+    port=settings.MCP_PORT
 )
 
 
 @app.tool()
 async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
     """Get the best chess move for a given position."""
+    if not _engine:
+        raise HTTPException(status_code=500, detail="Engine not initialized")
+    
     try:
         logger.info(f"Received request for position: {request.fen}")
         logger.debug(f"Move history: {request.move_history}")
-        best_move = get_best_move(request.fen, request.move_history)
+        best_move = _engine.get_best_move(request.fen, request.move_history)
         logger.info(f"Best move found: {best_move}")
         return ChessMoveResponse(best_move_uci=best_move)
     except StockfishError as e:
@@ -152,29 +183,88 @@ async def get_best_move_tool(request: ChessMoveRequest) -> ChessMoveResponse:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def main():
+@app.tool()
+async def validate_move_tool(request: ValidateMoveRequest) -> BoolResponse:
+    """Validates if a chess move is legal for a given position."""
+    logger.debug(f"Validating move '{request.move}' for position '{request.position}'")
+    try:
+        board = chess.Board(request.position)
+        uci_move = chess.Move.from_uci(request.move)
+        is_legal = uci_move in board.legal_moves
+        logger.debug(f"Move '{request.move}' validation result: {is_legal}")
+        return BoolResponse(result=is_legal)
+    except ValueError:
+        logger.warning(f"Invalid FEN '{request.position}' or move '{request.move}' format.")
+        return BoolResponse(result=False)  # Treat format errors as invalid
+    except Exception as e:
+        logger.error(f"Error validating move: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal error validating move.")
+
+
+@app.tool()
+async def get_legal_moves_tool(request: PositionRequest) -> ListResponse:
+    """Get all legal moves for a given position."""
+    try:
+        board = chess.Board(request.position)
+        legal_moves = [move.uci() for move in board.legal_moves]
+        return ListResponse(result=legal_moves)
+    except ValueError:
+        logger.warning(f"Invalid FEN format: {request.position}")
+        raise HTTPException(status_code=400, detail="Invalid FEN format")
+    except Exception as e:
+        logger.error(f"Error getting legal moves: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal error getting legal moves.")
+
+
+@app.tool()
+async def get_game_status_tool(request: PositionRequest) -> GameStatusResponse:
+    """Get the status of a chess game from a position."""
+    try:
+        board = chess.Board(request.position)
+        
+        # Check for game-ending conditions
+        if board.is_checkmate():
+            winner = "BLACK" if board.turn == chess.WHITE else "WHITE"
+            return GameStatusResponse(status="CHECKMATE", winner=winner)
+        elif board.is_stalemate():
+            return GameStatusResponse(status="STALEMATE")
+        elif board.is_insufficient_material():
+            return GameStatusResponse(status="DRAW", winner=None)
+        elif board.is_fifty_moves():
+            return GameStatusResponse(status="DRAW", winner=None)
+        elif board.is_repetition():
+            return GameStatusResponse(status="DRAW", winner=None)
+        else:
+            return GameStatusResponse(status="IN_PROGRESS")
+            
+    except ValueError:
+        logger.warning(f"Invalid FEN format: {request.position}")
+        raise HTTPException(status_code=400, detail="Invalid FEN format")
+    except Exception as e:
+        logger.error(f"Error getting game status: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal error getting game status.")
+
+
+def main_cli():
     """Parse arguments and runs the MCP server."""
     parser = argparse.ArgumentParser(description="Chess Engine MCP Server")
     parser.add_argument(
         "--transport",
         choices=["sse", "stdio"],
-        default="sse",  # Default to SSE if flag is omitted
+        default="sse",  # Default to SSE
         help="Transport mode for the MCP server (default: sse)",
     )
     args = parser.parse_args()
 
-    if args.transport == "stdio":
-        logger.info("Starting MCP server in stdio mode...")
-        app.run(transport="stdio")
-    else:
-        # SSE Mode (Default)
-        # Host/Port are already configured in the app instance via constructor
-        logger.info(
-            f"Starting MCP server in SSE mode "
-            f"(binding to {bind_host}:{bind_port})..."
-        )
-        app.run(transport="sse")
+    # Logging setup should already be done by setup_environment() called globally
+    logger.info(f"Starting MCP server in {args.transport} mode...")
+    logger.info(f"Configuration - Host: {settings.MCP_HOST}, Port: {settings.MCP_PORT}")
+
+    # Run the app instance using the selected transport
+    app.run(
+        transport=args.transport,
+    )
 
 
 if __name__ == "__main__":
-    main()
+    main_cli()

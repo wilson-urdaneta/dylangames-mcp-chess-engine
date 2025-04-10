@@ -23,3 +23,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added basic CI/CD workflow using GitHub Actions (lint, test, build, release, optional PyPI publish).
 * Included documentation (`README.md`, `.env.example`, `CHANGELOG.md`).
 * Configured code quality tools (Black, isort, flake8).
+
+## [0.2.0] - 2025-04-10
+
+### Added
+
+* **New Tools:** Added MCP tools using `python-chess` for core chess rule logic:
+    * `validate_move_tool`: Validates if a move is legal for a given FEN position.
+    * `get_legal_moves_tool`: Returns all legal moves for a given FEN position.
+    * `get_game_status_tool`: Determines game status (in progress, checkmate, stalemate, draw) for a FEN position.
+* **Configuration Management:** Added `pydantic-settings` and `python-dotenv` dependencies. Introduced `src/dylangames_mcp_chess_engine/config.py` with a `Settings` class to manage all environment variables centrally. Added `.env.example`.
+* **Testing:**
+    * Added `tests/test_config.py` for the new `Settings` class.
+    * Added unit tests for the new chess logic tools (`validate_move_tool`, `get_legal_moves_tool`, `get_game_status_tool`) in `tests/test_main_engine.py`.
+    * Added `@pytest.mark.integration` marker for tests requiring the actual Stockfish binary (`tests/test_integration.py`).
+    * Registered `integration` marker in `pyproject.toml`.
+
+### Changed
+
+* **Configuration Usage:** Refactored `main.py` and `engine_wrapper.py` (`_get_engine_path`) to import and use the central `settings` object instead of direct `os.environ.get` calls.
+* **Error Handling:** Refactored all MCP tools (`get_best_move_tool`, `validate_move_tool`, etc.) in `main.py` to return structured JSON dictionaries (`{"result": ...}` on success, `{"error": "..."}` on operational errors) instead of raising `HTTPException`. Unexpected internal errors now return `{"error": "Internal server error"}` after logging.
+* **Unit Testing:** Refactored unit tests (`test_engine_wrapper.py` and tests for `get_best_move_tool` in `test_main_engine.py`) to mock `subprocess.Popen` and Stockfish process interactions, removing the dependency on the actual binary for these tests. Updated assertions to match the new dictionary-based error returns.
+* **Documentation:** Updated `README.md` significantly with:
+    * Clear options for Stockfish binary setup (`ENGINE_PATH`, `engines/` directory + `ENGINE_OS`, package managers).
+    * Instructions for running all tests vs. only unit tests (`pytest -m "not integration"`).
+    * Reference to `engines/README.md` for directory structure.
+* **Dependencies:** Added `python-chess` as a core dependency.
+
+### Fixed
+
+* Corrected fallback logic in `engine_wrapper._get_engine_path`: Removed the default OS ("linux") and now requires the `ENGINE_OS` environment variable to be explicitly set if `ENGINE_PATH` is not used.

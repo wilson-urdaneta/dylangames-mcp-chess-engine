@@ -1,69 +1,61 @@
-"""Test suite for the chess engine module."""
+"""Test suite for the chess engine service."""
 
 import pytest
+from unittest.mock import patch, MagicMock
+from pathlib import Path
 
-from dylangames_mcp_chess_engine.engine_wrapper import (
-    StockfishError,
-    get_best_move,
-    initialize_engine,
-    stop_engine,
-)
+from dylangames_mcp_chess_engine.engine_wrapper import StockfishEngine, StockfishError
 
 
-@pytest.fixture(autouse=True)
-def ensure_engine_running():
-    """Ensure the Stockfish engine is running for tests."""
-    try:
-        stop_engine()  # Stop any existing engine
-        initialize_engine()
-        yield
-    except StockfishError as e:
-        pytest.fail(f"Failed to initialize engine: {e}")
-    finally:
-        stop_engine()
+def test_engine_initialization():
+    """Test that the engine can be initialized."""
+    with patch('dylangames_mcp_chess_engine.engine_wrapper._get_engine_path') as mock_get_path, \
+         patch('subprocess.Popen') as mock_popen, \
+         patch('select.select') as mock_select:
+        mock_get_path.return_value = Path("/mock/stockfish")
+        mock_process = mock_popen.return_value
+        mock_process.poll.return_value = None
+        mock_process.stdout.fileno.return_value = 1
+        mock_process.stdout.readline.side_effect = [
+            b"Stockfish 17.1\n",
+            b"uciok\n",
+            b"readyok\n"
+        ]
+        mock_select.return_value = ([mock_process.stdout], [], [])
+
+        engine = StockfishEngine()
+        assert isinstance(engine, StockfishEngine)
 
 
-def test_initialize_engine():
-    """Test engine initialization."""
-    try:
-        initialize_engine()
-        assert True  # If we get here, initialization succeeded
-    except StockfishError as e:
-        pytest.fail(f"Failed to initialize engine: {e}")
+def test_engine_get_best_move():
+    """Test getting the best move from the engine."""
+    with patch('dylangames_mcp_chess_engine.engine_wrapper._get_engine_path') as mock_get_path, \
+         patch('subprocess.Popen') as mock_popen, \
+         patch('select.select') as mock_select:
+        mock_get_path.return_value = Path("/mock/stockfish")
+        mock_process = mock_popen.return_value
+        mock_process.poll.return_value = None
+        mock_process.stdout.fileno.return_value = 1
+        mock_process.stdout.readline.side_effect = [
+            b"Stockfish 17.1\n",
+            b"uciok\n",
+            b"readyok\n",
+            b"info depth 1 seldepth 1 multipv 1 score cp 38 nodes 20 nps 20000 tbhits 0 time 1 pv e2e4\n",
+            b"bestmove e2e4 ponder e7e6\n"
+        ]
+        mock_select.return_value = ([mock_process.stdout], [], [])
+
+        engine = StockfishEngine()
+        best_move = engine.get_best_move("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        assert best_move == "e2e4"
 
 
-def test_get_best_move_basic():
-    """Test getting best move from starting position."""
-    try:
-        move = get_best_move(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", []
-        )
-        assert move is not None and len(move) >= 4
-    except StockfishError as e:
-        pytest.fail(f"Failed to get best move: {e}")
-
-
-def test_get_best_move_invalid_fen():
-    """Test handling of invalid FEN string."""
-    with pytest.raises(StockfishError):
-        get_best_move("invalid fen", [])
-
-
-def test_get_best_move_valid_position():
-    """Test getting best move from a specific position."""
-    fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"
-    try:
-        move = get_best_move(fen, [])
-        assert move is not None and len(move) >= 4
-    except StockfishError as e:
-        pytest.fail(f"Failed to get best move: {e}")
-
-
-def test_get_best_move_with_history():
-    """Test getting best move with move history."""
-    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    try:
-        move = get_best_move(fen, ["e2e4", "e7e5"])
-        assert move is not None and len(move) >= 4
-    except StockfishError as e:
-        pytest.fail(f"Failed to get best move: {e}")
+def test_engine_error_handling():
+    """Test that the engine handles errors correctly."""
+    with patch('dylangames_mcp_chess_engine.engine_wrapper._get_engine_path') as mock_get_path, \
+         patch('subprocess.Popen') as mock_popen:
+        mock_get_path.return_value = Path("/mock/stockfish")
+        mock_popen.side_effect = Exception("Mock error")
+        
+        with pytest.raises(StockfishError, match='Failed to initialize engine: Mock error'):
+            engine = StockfishEngine()

@@ -58,6 +58,56 @@ poetry install
      export ENGINE_BINARY=stockfish   # Default: stockfish (include .exe for Windows)
      ```
 
+## Stockfish Binary Setup
+
+This package requires the Stockfish chess engine binary to be available. You have two options for setting up the binary:
+
+### Option 1: Environment Variable (Recommended)
+
+1. Download the appropriate Stockfish binary for your system from the [official Stockfish website](https://stockfishchess.org/download/).
+2. Make the binary executable (Unix-like systems):
+   ```bash
+   chmod +x path/to/stockfish
+   ```
+3. Set the `ENGINE_PATH` environment variable to point to your Stockfish binary:
+   ```bash
+   # Unix-like systems
+   export ENGINE_PATH=/path/to/stockfish
+
+   # Windows (PowerShell)
+   $env:ENGINE_PATH="C:\path\to\stockfish.exe"
+   ```
+
+### Option 2: Default Directory Structure
+
+Place the Stockfish binary in the default directory structure under the package installation:
+
+```
+engines/
+└── stockfish/
+    └── 17.1/
+        ├── linux/
+        │   └── stockfish
+        ├── macos/
+        │   └── stockfish
+        └── windows/
+            └── stockfish.exe
+```
+
+The package will automatically detect your operating system and use the appropriate binary.
+
+### Platform Support
+
+- Linux: `stockfish` binary in the `linux` directory
+- macOS: `stockfish` binary in the `macos` directory
+- Windows: `stockfish.exe` in the `windows` directory
+
+### Troubleshooting
+
+1. Ensure the binary has executable permissions on Unix-like systems.
+2. For custom binary locations, use the `ENGINE_PATH` environment variable.
+3. You can override OS detection by setting the `ENGINE_OS` environment variable to `linux`, `macos`, or `windows`.
+
 ## Usage
 
 ### Starting the Server
@@ -292,3 +342,18 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE) file for details.
 ## Support
 
 For issues and feature requests, please use the GitHub issue tracker.
+
+## Running Tests
+
+The test suite includes both unit tests and integration tests. Integration tests require a working Stockfish binary.
+
+```bash
+# Run all tests
+pytest
+
+# Run only unit tests (no Stockfish binary required)
+pytest -m "not integration"
+
+# Run only integration tests
+pytest -m integration
+```
