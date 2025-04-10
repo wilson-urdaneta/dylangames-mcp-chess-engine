@@ -27,20 +27,20 @@ class MockEngine:
         return "e2e4"
 
 @pytest.mark.asyncio
-async def test_validate_move_tool_valid_move():
-    request = ValidateMoveRequest(position=STARTING_FEN, move="e2e4")
+async def test_validate_move_tool_valid_move(test_positions):
+    request = ValidateMoveRequest(position=test_positions["STARTING_FEN"], move="e2e4")
     response = await validate_move_tool(request)
     assert response.result is True
 
 @pytest.mark.asyncio
-async def test_validate_move_tool_invalid_syntax():
-    request = ValidateMoveRequest(position=STARTING_FEN, move="e2e9")
+async def test_validate_move_tool_invalid_syntax(test_positions):
+    request = ValidateMoveRequest(position=test_positions["STARTING_FEN"], move="e2e9")
     response = await validate_move_tool(request)
     assert response.result is False
 
 @pytest.mark.asyncio
-async def test_validate_move_tool_illegal_move():
-    request = ValidateMoveRequest(position=STARTING_FEN, move="e1e2")
+async def test_validate_move_tool_illegal_move(test_positions):
+    request = ValidateMoveRequest(position=test_positions["STARTING_FEN"], move="e1e2")
     response = await validate_move_tool(request)
     assert response.result is False
 
@@ -51,8 +51,8 @@ async def test_validate_move_tool_invalid_fen():
     assert response.result is False
 
 @pytest.mark.asyncio
-async def test_get_legal_moves_tool_starting_position():
-    request = PositionRequest(position=STARTING_FEN)
+async def test_get_legal_moves_tool_starting_position(test_positions):
+    request = PositionRequest(position=test_positions["STARTING_FEN"])
     response = await get_legal_moves_tool(request)
     # Starting position should have 20 legal moves
     assert len(response.result) == 20
@@ -61,8 +61,8 @@ async def test_get_legal_moves_tool_starting_position():
     assert "d2d4" in response.result
 
 @pytest.mark.asyncio
-async def test_get_legal_moves_tool_checkmate():
-    request = PositionRequest(position=CHECKMATE_FEN)
+async def test_get_legal_moves_tool_checkmate(test_positions):
+    request = PositionRequest(position=test_positions["CHECKMATE_FEN"])
     response = await get_legal_moves_tool(request)
     # In checkmate position, there should be no legal moves
     assert len(response.result) == 0
@@ -74,28 +74,28 @@ async def test_get_legal_moves_tool_invalid_fen():
         await get_legal_moves_tool(request)
 
 @pytest.mark.asyncio
-async def test_game_status_tool_in_progress():
-    request = PositionRequest(position=STARTING_FEN)
+async def test_game_status_tool_in_progress(test_positions):
+    request = PositionRequest(position=test_positions["STARTING_FEN"])
     response = await get_game_status_tool(request)
     assert response.status == "IN_PROGRESS"
     assert response.winner is None
 
 @pytest.mark.asyncio
-async def test_game_status_tool_checkmate():
-    request = PositionRequest(position=CHECKMATE_FEN)
+async def test_game_status_tool_checkmate(test_positions):
+    request = PositionRequest(position=test_positions["CHECKMATE_FEN"])
     response = await get_game_status_tool(request)
     assert response.status == "CHECKMATE"
     assert response.winner == "BLACK"  # Black has checkmated White in Fool's mate
 
 @pytest.mark.asyncio
-async def test_game_status_tool_stalemate():
-    request = PositionRequest(position=STALEMATE_FEN)
+async def test_game_status_tool_stalemate(test_positions):
+    request = PositionRequest(position=test_positions["STALEMATE_FEN"])
     response = await get_game_status_tool(request)
     assert response.status == "STALEMATE"
 
 @pytest.mark.asyncio
-async def test_game_status_tool_insufficient_material():
-    request = PositionRequest(position=INSUFFICIENT_MATERIAL_FEN)
+async def test_game_status_tool_insufficient_material(test_positions):
+    request = PositionRequest(position=test_positions["INSUFFICIENT_MATERIAL_FEN"])
     response = await get_game_status_tool(request)
     assert response.status == "DRAW"
 
@@ -106,7 +106,7 @@ async def test_game_status_tool_invalid_fen():
         await get_game_status_tool(request)
 
 @pytest.mark.asyncio
-async def test_get_best_move_tool():
+async def test_get_best_move_tool(test_positions):
     """Test the get_best_move_tool function."""
     # Create a mock engine instance
     mock_engine = MagicMock(spec=StockfishEngine)
@@ -116,7 +116,7 @@ async def test_get_best_move_tool():
     with patch("dylangames_mcp_chess_engine.main._engine", mock_engine):
         # Prepare the request object
         request = ChessMoveRequest(
-            fen=STARTING_FEN,
+            fen=test_positions["STARTING_FEN"],
             move_history=[]
         )
 
@@ -128,4 +128,4 @@ async def test_get_best_move_tool():
         assert response.best_move_uci == "e2e4"
 
         # Verify the mock was called correctly
-        mock_engine.get_best_move.assert_called_once_with(STARTING_FEN, []) 
+        mock_engine.get_best_move.assert_called_once_with(test_positions["STARTING_FEN"], []) 
