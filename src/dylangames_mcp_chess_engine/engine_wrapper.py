@@ -57,7 +57,7 @@ def _get_engine_path() -> Path:
     binary_name = "stockfish.exe" if engine_os == "windows" else "stockfish"
 
     fallback_path = (
-        Path(__file__).parent.parent
+        Path(__file__).parent.parent.parent
         / "engines"
         / engine_name
         / engine_version

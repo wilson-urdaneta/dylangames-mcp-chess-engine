@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 def setup_environment():
     """Set up and validate the environment."""
+    global _engine
+
     # Get the project root directory
     project_root = Path(__file__).parent.parent.parent.absolute()
 
@@ -80,8 +82,7 @@ def setup_environment():
 
     # Test engine initialization
     try:
-        engine = StockfishEngine()
-        engine.stop()
+        _engine = StockfishEngine()
         logger.info("Engine test initialization successful")
     except StockfishError as e:
         logger.error("Engine initialization error: %s", e)
@@ -157,8 +158,11 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
     global _engine
     try:
         logger.info("Starting chess engine server (via MCP lifespan)...")
-        _engine = StockfishEngine()
-        logger.info("Engine initialized successfully (via MCP lifespan)")
+        if not _engine:
+            _engine = StockfishEngine()
+            logger.info("Engine initialized successfully (via MCP lifespan)")
+        else:
+            logger.info("Reusing existing engine instance")
         yield
     finally:
         logger.info("Stopping engine (via MCP lifespan)...")
