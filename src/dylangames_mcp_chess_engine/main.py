@@ -90,11 +90,11 @@ def setup_environment():
     try:
         _engine = StockfishEngine()
         logger.info("Engine test initialization successful")
-        # Log the Stockfish engine path
+        # Log the Stockfish engine path but don't print it here
+        # We'll print it at startup time in main_cli
         try:
             stockfish_path = _get_engine_path()
             logger.info(f"Stockfish engine binary location: {stockfish_path}")
-            print(f"INFO:     Stockfish engine located at: {stockfish_path}")
         except Exception as e:
             logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
     except StockfishError as e:
@@ -340,6 +340,24 @@ def main_cli():
     logger.info("Starting MCP server in {} mode...".format(args.transport))
     config_msg = "Configuration - Host: {}, Port: {}"
     logger.info(config_msg.format(settings.MCP_HOST, settings.MCP_PORT))
+    
+    # Get stockfish path for display
+    try:
+        stockfish_path = _get_engine_path()
+        
+        # Make sure these messages appear in the console no matter what
+        print(f"\033[32mINFO\033[0m:     Stockfish engine:")
+        print(f"\033[32mINFO\033[0m:     → {stockfish_path}")
+        print(f"\033[32mINFO\033[0m:     Transport mode: {args.transport}")
+        
+        # Still log to uvicorn logger for completeness
+        uvicorn_logger = logging.getLogger("uvicorn")
+        uvicorn_logger.info("Stockfish engine:")
+        uvicorn_logger.info(f"→ {stockfish_path}")
+        uvicorn_logger.info(f"Transport mode: {args.transport}")
+    except Exception as e:
+        logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
+        print(f"\033[33mWARNING\033[0m: Unable to retrieve Stockfish engine path: {e}")
 
     # Run the app instance using the selected transport
     app.run(transport=args.transport)
