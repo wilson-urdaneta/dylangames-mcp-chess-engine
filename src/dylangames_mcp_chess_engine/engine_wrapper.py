@@ -9,6 +9,9 @@ import time
 from pathlib import Path
 from typing import List
 
+# Add import for EngineRegistry
+from dylangames_mcp_chess_engine.shutdown import EngineRegistry
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 
@@ -107,6 +110,8 @@ class StockfishEngine:
         """Initialize the Stockfish engine."""
         self.process = None
         self._initialize_engine()
+        # Register with engine registry
+        EngineRegistry.register(self)
 
     def _send_command(self, command: str) -> None:
         """Send a command to the Stockfish engine."""
@@ -270,3 +275,5 @@ class StockfishEngine:
             finally:
                 self.process = None
                 logger.info("Engine stopped")
+                # Unregister from registry
+                EngineRegistry.unregister(self)

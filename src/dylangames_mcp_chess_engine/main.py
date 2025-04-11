@@ -17,6 +17,7 @@ from dylangames_mcp_chess_engine.engine_wrapper import (
     StockfishEngine,
     StockfishError,
 )
+from dylangames_mcp_chess_engine.shutdown import setup_signal_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,10 @@ def setup_environment():
         logger.error("pyproject.toml not found at %s", pyproject_path)
         msg = f"pyproject.toml not found at {pyproject_path}"
         raise RuntimeError(msg)
+
+    # Set up signal handlers for graceful shutdown
+    setup_signal_handlers()
+    logger.info("Signal handlers for graceful shutdown are set up")
 
     # Test engine initialization
     try:
