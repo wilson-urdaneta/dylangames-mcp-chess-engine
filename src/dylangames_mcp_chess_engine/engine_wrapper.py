@@ -232,7 +232,11 @@ class StockfishEngine:
             # Get best move
             logger.debug("Calculating best move...")
             self._send_command("go movetime 3000")
-            responses = self._read_response(until="bestmove", timeout=5.0)
+            logger.debug("Waiting for bestmove response with 30s timeout...")
+            responses = self._read_response(until="bestmove", timeout=30.0)
+            logger.debug(
+                f"Received {len(responses)} response lines from engine"
+            )
 
             # Parse response
             for response in responses:
@@ -241,6 +245,9 @@ class StockfishEngine:
                     logger.info(f"Best move found: {best_move}")
                     return best_move
 
+            logger.error(
+                f"No 'bestmove' line found in engine responses: {responses}"
+            )
             raise StockfishError("No best move found in engine response")
 
         except Exception as e:

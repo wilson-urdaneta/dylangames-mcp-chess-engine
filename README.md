@@ -109,7 +109,7 @@ The server uses FastMCP with support for both Server-Sent Events (SSE) and stdio
 poetry run python -m dylangames_mcp_chess_engine.main
 ```
 
-This command starts the MCP server in SSE mode, which listens for SSE connections on the configured host and port (default: 127.0.0.1:8001). This mode is ideal for programmatic clients and agents that need to interact with the chess engine over HTTP.
+This command starts the MCP server in SSE mode, which listens for SSE connections on the configured host and port (default: 127.0.0.1:9000). This mode is ideal for programmatic clients and agents that need to interact with the chess engine over HTTP.
 
 #### Stdio Mode
 
@@ -132,15 +132,15 @@ from mcp import ClientSession
 
 async def get_best_move():
     # Connect to the SSE endpoint
-    async with sse_client("http://127.0.0.1:8001/sse", timeout=10.0) as streams:
+    async with sse_client("http://127.0.0.1:9000/sse", timeout=10.0) as streams:
         # Create an MCP session
         async with ClientSession(*streams) as session:
             # Initialize the session
             await session.initialize()
 
-            # Call the tool
+            # Call the tool - Note: Arguments MUST be wrapped in a "request" field
             result = await session.call_tool('get_best_move_tool', {
-                "request": {
+                "request": {  # Required wrapper field
                     "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                     "move_history": []
                 }
@@ -148,6 +148,29 @@ async def get_best_move():
 
             print(f"Best move: {result.best_move_uci}")  # e.g., "e2e4"
 ```
+
+#### Request Format
+
+The `get_best_move_tool` expects requests in the following format:
+```json
+{
+    "request": {
+        "fen": "string",       // Required: FEN string representing the position
+        "move_history": []     // Optional: List of previous moves in UCI format
+    }
+}
+```
+
+Note: The outer "request" wrapper field is required for proper request validation.
+
+#### Timeouts
+
+The engine is configured with the following timeouts:
+- Engine calculation time: 3000ms (set via `go movetime 3000`)
+- Response wait timeout: 30s (allows time for engine initialization and calculation)
+- SSE client connection timeout: 15s (configurable in client code)
+
+These timeouts ensure reliable operation while allowing sufficient time for move calculation, even on slower systems or when the engine needs more time to process complex positions.
 
 ### Environment Variables
 
@@ -165,7 +188,7 @@ ENGINE_BINARY=stockfish    # Default: stockfish (include .exe for Windows)
 
 # MCP Server Configuration
 MCP_HOST=127.0.0.1        # Default: 127.0.0.1
-MCP_PORT=8001             # Default: 8001
+MCP_PORT=9000             # Default: 9000
 ```
 
 See `.env.example` for a complete example configuration.

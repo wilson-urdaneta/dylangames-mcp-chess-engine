@@ -13,7 +13,7 @@ from dylangames_mcp_chess_engine.config import Settings
 def test_default_settings():
     """Test that default settings are applied correctly."""
     with patch.dict(os.environ, {}, clear=True):
-        settings = Settings()
+        settings = Settings(_env_file=None)  # Explicitly disable .env file loading
         assert settings.ENGINE_PATH is None
         assert settings.ENGINE_NAME == "stockfish"
         assert settings.ENGINE_VERSION == "17.1"
@@ -37,7 +37,7 @@ def test_custom_settings_from_env():
         "LOG_LEVEL": "DEBUG",
     }
     with patch.dict(os.environ, test_env, clear=True):
-        settings = Settings()
+        settings = Settings(_env_file=None)  # Explicitly disable .env file loading
         assert settings.ENGINE_PATH == "/custom/path/to/engine"
         assert settings.ENGINE_NAME == "custom_engine"
         assert settings.ENGINE_VERSION == "16.0"
@@ -54,7 +54,7 @@ def test_invalid_port():
         patch.dict(os.environ, {"MCP_PORT": "invalid"}, clear=True),
         pytest.raises(ValidationError),
     ):
-        Settings()
+        Settings(_env_file=None)  # Explicitly disable .env file loading
 
 
 def test_invalid_log_level():
@@ -63,7 +63,7 @@ def test_invalid_log_level():
         patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True),
         pytest.raises(ValidationError),
     ):
-        Settings()
+        Settings(_env_file=None)  # Explicitly disable .env file loading
 
 
 def test_partial_override():
@@ -73,7 +73,7 @@ def test_partial_override():
         "MCP_PORT": "8888",
     }
     with patch.dict(os.environ, test_env, clear=True):
-        settings = Settings()
+        settings = Settings(_env_file=None)  # Explicitly disable .env file loading
         # Overridden values
         assert settings.ENGINE_PATH == "/custom/path"
         assert settings.MCP_PORT == 8888

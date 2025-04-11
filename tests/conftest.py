@@ -15,7 +15,7 @@ def setup_test_env():
         {
             "PYTHON_ENV": "test",
             "MCP_HOST": "127.0.0.1",
-            "MCP_PORT": "8001",
+            "MCP_PORT": "9000",
             "LOG_LEVEL": "DEBUG",
         }
     )
