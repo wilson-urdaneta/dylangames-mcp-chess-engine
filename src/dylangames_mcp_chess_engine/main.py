@@ -203,9 +203,11 @@ async def get_best_move_tool(request: ChessMoveRequest) -> dict:
         best_move = _engine.get_best_move(request.fen, request.move_history)
         return {"result": {"best_move_uci": best_move}}
     except StockfishError as e:
+        logger.warning(f"Stockfish engine error: {e}")
         return {"error": str(e)}
     except Exception as e:
-        return {"error": f"Unexpected error: {str(e)}"}
+        logger.error(f"Unexpected internal error in get_best_move_tool: {e}", exc_info=True)
+        return {"error": "Internal server error"}
 
 
 @app.tool()
@@ -221,12 +223,22 @@ async def validate_move_tool(request: ValidateMoveRequest) -> dict:
     """
     try:
         board = chess.Board(request.position)
+    except ValueError as e:
+        logger.warning(f"Invalid FEN format in validate_move_tool: {e}")
+        return {"error": f"Invalid FEN format: {e}"}
+    
+    try:
         move = chess.Move.from_uci(request.move)
-        return {"result": move in board.legal_moves}
-    except ValueError:
-        return {"result": False}  # Invalid FEN or move format
+    except ValueError as e:
+        logger.warning(f"Invalid move format in validate_move_tool: {e}")
+        return {"error": f"Invalid move format: {e}"}
+    
+    try:
+        result = move in board.legal_moves
+        return {"result": result}
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Unexpected internal error in validate_move_tool: {e}", exc_info=True)
+        return {"error": "Internal server error"}
 
 
 @app.tool()
@@ -242,12 +254,16 @@ async def get_legal_moves_tool(request: PositionRequest) -> dict:
     """
     try:
         board = chess.Board(request.position)
+    except ValueError as e:
+        logger.warning(f"Invalid FEN format in get_legal_moves_tool: {e}")
+        return {"error": f"Invalid FEN format: {e}"}
+    
+    try:
         legal_moves = [move.uci() for move in board.legal_moves]
         return {"result": legal_moves}
-    except ValueError as e:
-        return {"error": f"Invalid FEN format: {str(e)}"}
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Unexpected internal error in get_legal_moves_tool: {e}", exc_info=True)
+        return {"error": "Internal server error"}
 
 
 @app.tool()
@@ -264,7 +280,11 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
     """
     try:
         board = chess.Board(request.position)
-
+    except ValueError as e:
+        logger.warning(f"Invalid FEN format in get_game_status_tool: {e}")
+        return {"error": f"Invalid FEN format: {e}"}
+    
+    try:
         if board.is_checkmate():
             status = "CHECKMATE"
             winner = "BLACK" if board.turn == chess.WHITE else "WHITE"
@@ -279,10 +299,9 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
             winner = None
 
         return {"result": {"status": status, "winner": winner}}
-    except ValueError as e:
-        return {"error": f"Invalid FEN format: {str(e)}"}
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Unexpected internal error in get_game_status_tool: {e}", exc_info=True)
+        return {"error": "Internal server error"}
 
 
 def main_cli():
