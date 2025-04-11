@@ -77,7 +77,8 @@ async def test_get_legal_moves_tool_starting_position(test_positions):
     request = PositionRequest(position=test_positions["STARTING_FEN"])
     response = await get_legal_moves_tool(request)
     assert "result" in response
-    # Since we can't know exactly what moves will be returned, we'll check structure and content
+    # Since we can't know exactly what moves will be returned,
+    # we'll check structure and content
     assert len(response["result"]) == 20
     assert "e2e4" in response["result"]
     assert "d2d4" in response["result"]
@@ -105,7 +106,11 @@ async def test_game_status_tool_in_progress(test_positions):
     """Test game status detection for an ongoing game."""
     request = PositionRequest(position=test_positions["STARTING_FEN"])
     response = await get_game_status_tool(request)
-    expected = {"result": GameStatusResponse(status="IN_PROGRESS", winner=None).model_dump()}
+    expected = {
+        "result": GameStatusResponse(
+            status="IN_PROGRESS", winner=None
+        ).model_dump()
+    }
     assert response == expected
 
 
@@ -114,7 +119,11 @@ async def test_game_status_tool_checkmate(test_positions):
     """Test game status detection for a checkmate position."""
     request = PositionRequest(position=test_positions["CHECKMATE_FEN"])
     response = await get_game_status_tool(request)
-    expected = {"result": GameStatusResponse(status="CHECKMATE", winner="BLACK").model_dump()}
+    expected = {
+        "result": GameStatusResponse(
+            status="CHECKMATE", winner="BLACK"
+        ).model_dump()
+    }
     assert response == expected
 
 
@@ -123,7 +132,11 @@ async def test_game_status_tool_stalemate(test_positions):
     """Test game status detection for a stalemate position."""
     request = PositionRequest(position=test_positions["STALEMATE_FEN"])
     response = await get_game_status_tool(request)
-    expected = {"result": GameStatusResponse(status="STALEMATE", winner=None).model_dump()}
+    expected = {
+        "result": GameStatusResponse(
+            status="STALEMATE", winner=None
+        ).model_dump()
+    }
     assert response == expected
 
 
@@ -134,7 +147,9 @@ async def test_game_status_tool_insufficient_material(test_positions):
         position=test_positions["INSUFFICIENT_MATERIAL_FEN"]
     )
     response = await get_game_status_tool(request)
-    expected = {"result": GameStatusResponse(status="DRAW", winner=None).model_dump()}
+    expected = {
+        "result": GameStatusResponse(status="DRAW", winner=None).model_dump()
+    }
     assert response == expected
 
 
@@ -158,7 +173,9 @@ async def test_get_best_move_tool_success(test_positions):
             fen=test_positions["STARTING_FEN"], move_history=[]
         )
         response = await get_best_move_tool(request)
-        expected = {"result": ChessMoveResponse(best_move_uci="e2e4").model_dump()}
+        expected = {
+            "result": ChessMoveResponse(best_move_uci="e2e4").model_dump()
+        }
         assert response == expected
         mock_engine.get_best_move.assert_called_once_with(
             test_positions["STARTING_FEN"], []

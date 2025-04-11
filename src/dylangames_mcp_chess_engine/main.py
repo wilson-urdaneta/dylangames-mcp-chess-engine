@@ -177,17 +177,25 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
             # Log the exact path of the Stockfish binary being used
             try:
                 stockfish_path = _get_engine_path()
-                logger.info(f"Stockfish engine binary location: {stockfish_path}")
+                logger.info(
+                    f"Stockfish engine binary location: {stockfish_path}"
+                )
             except Exception as e:
-                logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
+                logger.warning(
+                    f"Unable to retrieve Stockfish engine path: {e}"
+                )
         else:
             logger.info("Reusing existing engine instance")
             # Still try to log the path for the existing instance
             try:
                 stockfish_path = _get_engine_path()
-                logger.info(f"Stockfish engine binary location: {stockfish_path}")
+                logger.info(
+                    f"Stockfish engine binary location: {stockfish_path}"
+                )
             except Exception as e:
-                logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
+                logger.warning(
+                    f"Unable to retrieve Stockfish engine path: {e}"
+                )
         yield
     finally:
         logger.info("Stopping engine (via MCP lifespan)...")
@@ -226,7 +234,10 @@ async def get_best_move_tool(request: ChessMoveRequest) -> dict:
         logger.warning(f"Stockfish engine error: {e}")
         return {"error": str(e)}
     except Exception as e:
-        logger.error(f"Unexpected internal error in get_best_move_tool: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected internal error in get_best_move_tool: {e}",
+            exc_info=True,
+        )
         return {"error": "Internal server error"}
 
 
@@ -246,18 +257,21 @@ async def validate_move_tool(request: ValidateMoveRequest) -> dict:
     except ValueError as e:
         logger.warning(f"Invalid FEN format in validate_move_tool: {e}")
         return {"error": f"Invalid FEN format: {e}"}
-    
+
     try:
         move = chess.Move.from_uci(request.move)
     except ValueError as e:
         logger.warning(f"Invalid move format in validate_move_tool: {e}")
         return {"error": f"Invalid move format: {e}"}
-    
+
     try:
         result = move in board.legal_moves
         return {"result": result}
     except Exception as e:
-        logger.error(f"Unexpected internal error in validate_move_tool: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected internal error in validate_move_tool: {e}",
+            exc_info=True,
+        )
         return {"error": "Internal server error"}
 
 
@@ -277,12 +291,15 @@ async def get_legal_moves_tool(request: PositionRequest) -> dict:
     except ValueError as e:
         logger.warning(f"Invalid FEN format in get_legal_moves_tool: {e}")
         return {"error": f"Invalid FEN format: {e}"}
-    
+
     try:
         legal_moves = [move.uci() for move in board.legal_moves]
         return {"result": legal_moves}
     except Exception as e:
-        logger.error(f"Unexpected internal error in get_legal_moves_tool: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected internal error in get_legal_moves_tool: {e}",
+            exc_info=True,
+        )
         return {"error": "Internal server error"}
 
 
@@ -303,7 +320,7 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
     except ValueError as e:
         logger.warning(f"Invalid FEN format in get_game_status_tool: {e}")
         return {"error": f"Invalid FEN format: {e}"}
-    
+
     try:
         if board.is_checkmate():
             status = "CHECKMATE"
@@ -320,7 +337,10 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
 
         return {"result": {"status": status, "winner": winner}}
     except Exception as e:
-        logger.error(f"Unexpected internal error in get_game_status_tool: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected internal error in get_game_status_tool: {e}",
+            exc_info=True,
+        )
         return {"error": "Internal server error"}
 
 
@@ -340,16 +360,16 @@ def main_cli():
     logger.info("Starting MCP server in {} mode...".format(args.transport))
     config_msg = "Configuration - Host: {}, Port: {}"
     logger.info(config_msg.format(settings.MCP_HOST, settings.MCP_PORT))
-    
+
     # Get stockfish path for display
     try:
         stockfish_path = _get_engine_path()
-        
+
         # Make sure these messages appear in the console no matter what
-        print(f"\033[32mINFO\033[0m:     Stockfish engine:")
+        print("\033[32mINFO\033[0m:     Stockfish engine:")
         print(f"\033[32mINFO\033[0m:     → {stockfish_path}")
         print(f"\033[32mINFO\033[0m:     Transport mode: {args.transport}")
-        
+
         # Still log to uvicorn logger for completeness
         uvicorn_logger = logging.getLogger("uvicorn")
         uvicorn_logger.info("Stockfish engine:")
@@ -357,7 +377,10 @@ def main_cli():
         uvicorn_logger.info(f"Transport mode: {args.transport}")
     except Exception as e:
         logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
-        print(f"\033[33mWARNING\033[0m: Unable to retrieve Stockfish engine path: {e}")
+        print(
+            f"\033[33mWARNING\033[0m: "
+            f"Unable to retrieve Stockfish engine path: {e}"
+        )
 
     # Run the app instance using the selected transport
     app.run(transport=args.transport)

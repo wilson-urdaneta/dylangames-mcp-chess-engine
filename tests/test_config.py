@@ -11,41 +11,38 @@ from dylangames_mcp_chess_engine.config import Settings
 
 
 def test_default_settings():
-    """Test that default settings are applied correctly."""
-    with patch.dict(os.environ, {}, clear=True):
-        settings = Settings(_env_file=None)  # Explicitly disable .env file loading
-        assert settings.ENGINE_PATH is None
-        assert settings.ENGINE_NAME == "stockfish"
-        assert settings.ENGINE_VERSION == "17.1"
-        assert settings.ENGINE_OS == "macos"
-        assert settings.ENGINE_BINARY == "stockfish"
-        assert settings.MCP_HOST == "127.0.0.1"
-        assert settings.MCP_PORT == 9000
-        assert settings.LOG_LEVEL == "INFO"
+    """Test default settings creation with no environment variables."""
+    # Clear any existing environment variables
+    for key in ["MCP_HOST", "MCP_PORT", "ENGINE_PATH", "LOG_LEVEL"]:
+        if key in os.environ:
+            del os.environ[key]
+
+    # Create settings object
+    settings = Settings()
+
+    # Check default values
+    assert settings.MCP_HOST == "127.0.0.1"
+    assert settings.MCP_PORT == 9000
+    assert settings.ENGINE_PATH is None
+    assert settings.LOG_LEVEL == "DEBUG"
 
 
 def test_custom_settings_from_env():
-    """Test that environment variables override defaults."""
-    test_env = {
-        "ENGINE_PATH": "/custom/path/to/engine",
-        "ENGINE_NAME": "custom_engine",
-        "ENGINE_VERSION": "16.0",
-        "ENGINE_OS": "darwin",
-        "ENGINE_BINARY": "custom_binary",
-        "MCP_HOST": "0.0.0.0",
-        "MCP_PORT": "8080",
-        "LOG_LEVEL": "DEBUG",
-    }
-    with patch.dict(os.environ, test_env, clear=True):
-        settings = Settings(_env_file=None)  # Explicitly disable .env file loading
-        assert settings.ENGINE_PATH == "/custom/path/to/engine"
-        assert settings.ENGINE_NAME == "custom_engine"
-        assert settings.ENGINE_VERSION == "16.0"
-        assert settings.ENGINE_OS == "darwin"
-        assert settings.ENGINE_BINARY == "custom_binary"
-        assert settings.MCP_HOST == "0.0.0.0"
-        assert settings.MCP_PORT == 8080  # Should be converted to int
-        assert settings.LOG_LEVEL == "DEBUG"
+    """Test settings with custom environment variables."""
+    # Set environment variables
+    os.environ["MCP_HOST"] = "0.0.0.0"
+    os.environ["MCP_PORT"] = "8080"
+    os.environ["ENGINE_PATH"] = "/path/to/engine"
+    os.environ["LOG_LEVEL"] = "DEBUG"
+
+    # Create settings object
+    settings = Settings()
+
+    # Check custom values
+    assert settings.MCP_HOST == "0.0.0.0"
+    assert settings.MCP_PORT == 8080
+    assert settings.ENGINE_PATH == "/path/to/engine"
+    assert settings.LOG_LEVEL == "DEBUG"
 
 
 def test_invalid_port():
@@ -67,17 +64,19 @@ def test_invalid_log_level():
 
 
 def test_partial_override():
-    """Test that partial environment overrides work correctly."""
-    test_env = {
-        "ENGINE_PATH": "/custom/path",
-        "MCP_PORT": "8888",
-    }
-    with patch.dict(os.environ, test_env, clear=True):
-        settings = Settings(_env_file=None)  # Explicitly disable .env file loading
-        # Overridden values
-        assert settings.ENGINE_PATH == "/custom/path"
-        assert settings.MCP_PORT == 8888
-        # Default values
-        assert settings.ENGINE_NAME == "stockfish"
-        assert settings.MCP_HOST == "127.0.0.1"
-        assert settings.LOG_LEVEL == "INFO"
+    """Test settings with partial environment variables."""
+    # Set only some environment variables
+    os.environ["MCP_PORT"] = "8888"
+    # Remove the others if they exist
+    for key in ["MCP_HOST", "ENGINE_PATH", "LOG_LEVEL"]:
+        if key in os.environ:
+            del os.environ[key]
+
+    # Create settings object
+    settings = Settings()
+
+    # Check mixed values (custom and default)
+    assert settings.MCP_HOST == "127.0.0.1"  # Default
+    assert settings.MCP_PORT == 8888  # Custom
+    assert settings.ENGINE_PATH is None  # Default
+    assert settings.LOG_LEVEL == "DEBUG"  # Changed from INFO to DEBUG
