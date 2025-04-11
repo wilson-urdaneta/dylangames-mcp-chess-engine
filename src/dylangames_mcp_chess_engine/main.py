@@ -16,6 +16,7 @@ from dylangames_mcp_chess_engine.config import settings
 from dylangames_mcp_chess_engine.engine_wrapper import (
     StockfishEngine,
     StockfishError,
+    _get_engine_path,
 )
 from dylangames_mcp_chess_engine.shutdown import setup_signal_handlers
 
@@ -89,6 +90,13 @@ def setup_environment():
     try:
         _engine = StockfishEngine()
         logger.info("Engine test initialization successful")
+        # Log the Stockfish engine path
+        try:
+            stockfish_path = _get_engine_path()
+            logger.info(f"Stockfish engine binary location: {stockfish_path}")
+            print(f"INFO:     Stockfish engine located at: {stockfish_path}")
+        except Exception as e:
+            logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
     except StockfishError as e:
         logger.error("Engine initialization error: %s", e)
         # Let initialization handle the error if path is bad
@@ -166,8 +174,20 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
         if not _engine:
             _engine = StockfishEngine()
             logger.info("Engine initialized successfully (via MCP lifespan)")
+            # Log the exact path of the Stockfish binary being used
+            try:
+                stockfish_path = _get_engine_path()
+                logger.info(f"Stockfish engine binary location: {stockfish_path}")
+            except Exception as e:
+                logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
         else:
             logger.info("Reusing existing engine instance")
+            # Still try to log the path for the existing instance
+            try:
+                stockfish_path = _get_engine_path()
+                logger.info(f"Stockfish engine binary location: {stockfish_path}")
+            except Exception as e:
+                logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
         yield
     finally:
         logger.info("Stopping engine (via MCP lifespan)...")
