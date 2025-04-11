@@ -1,10 +1,8 @@
 """Main module for the MCP chess engine service."""
 
 import argparse
-import logging
 import sys
 from contextlib import asynccontextmanager
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import AsyncIterator, List, Optional
 
@@ -18,9 +16,10 @@ from dylangames_mcp_chess_engine.engine_wrapper import (
     StockfishError,
     _get_engine_path,
 )
+from dylangames_mcp_chess_engine.logging_config import get_logger, setup_logging
 from dylangames_mcp_chess_engine.shutdown import setup_signal_handlers
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def setup_environment():
@@ -29,51 +28,6 @@ def setup_environment():
 
     # Get the project root directory
     project_root = Path(__file__).parent.parent.parent.absolute()
-
-    # Create logs directory if it doesn't exist
-    logs_dir = project_root / "logs"
-    logs_dir.mkdir(exist_ok=True)
-
-    # Configure logging
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-    # Create handlers
-    stream_handler = logging.StreamHandler(sys.stderr)
-    stream_handler.setLevel(logging.WARNING)
-
-    main_file_handler = RotatingFileHandler(
-        logs_dir / "chess_engine.log",
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5,
-        encoding="utf-8",
-        mode="w",  # Overwrite logs on each start
-    )
-    main_file_handler.setLevel(logging.DEBUG)
-
-    error_file_handler = RotatingFileHandler(
-        logs_dir / "chess_engine.error.log",
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5,
-        encoding="utf-8",
-        mode="w",  # Overwrite logs on each start
-    )
-    error_file_handler.setLevel(logging.ERROR)
-
-    formatter = logging.Formatter(log_format)
-    stream_handler.setFormatter(formatter)
-    main_file_handler.setFormatter(formatter)
-    error_file_handler.setFormatter(formatter)
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, settings.LOG_LEVEL))
-
-    if root_logger.hasHandlers():
-        root_logger.handlers.clear()
-    root_logger.addHandler(stream_handler)
-    root_logger.addHandler(main_file_handler)
-    root_logger.addHandler(error_file_handler)
-
-    logger = logging.getLogger("chess_engine")
 
     # Verify pyproject.toml exists
     pyproject_path = project_root / "pyproject.toml"
@@ -94,9 +48,9 @@ def setup_environment():
         # We'll print it at startup time in main_cli
         try:
             stockfish_path = _get_engine_path()
-            logger.info(f"Stockfish engine binary location: {stockfish_path}")
+            logger.info("Stockfish engine binary location: %s", stockfish_path)
         except Exception as e:
-            logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
+            logger.warning("Unable to retrieve Stockfish engine path: %s", e)
     except StockfishError as e:
         logger.error("Engine initialization error: %s", e)
         # Let initialization handle the error if path is bad
@@ -104,11 +58,16 @@ def setup_environment():
     return logger
 
 
+# Initialize logging first
+setup_logging(settings)
+
+# Then set up the environment
 logger = setup_environment()
 
 logger.info(
-    "Configuring FastMCP to use "
-    f"host='{settings.MCP_HOST}' port={settings.MCP_PORT}"
+    "Configuring FastMCP to use host='%s' port=%d",
+    settings.MCP_HOST,
+    settings.MCP_PORT,
 )
 
 # Global engine instance
@@ -178,11 +137,13 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
             try:
                 stockfish_path = _get_engine_path()
                 logger.info(
-                    f"Stockfish engine binary location: {stockfish_path}"
+                    "Stockfish engine binary location: %s",
+                    stockfish_path,
                 )
             except Exception as e:
                 logger.warning(
-                    f"Unable to retrieve Stockfish engine path: {e}"
+                    "Unable to retrieve Stockfish engine path: %s",
+                    e,
                 )
         else:
             logger.info("Reusing existing engine instance")
@@ -190,11 +151,13 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
             try:
                 stockfish_path = _get_engine_path()
                 logger.info(
-                    f"Stockfish engine binary location: {stockfish_path}"
+                    "Stockfish engine binary location: %s",
+                    stockfish_path,
                 )
             except Exception as e:
                 logger.warning(
-                    f"Unable to retrieve Stockfish engine path: {e}"
+                    "Unable to retrieve Stockfish engine path: %s",
+                    e,
                 )
         yield
     finally:
@@ -231,11 +194,12 @@ async def get_best_move_tool(request: ChessMoveRequest) -> dict:
         best_move = _engine.get_best_move(request.fen, request.move_history)
         return {"result": {"best_move_uci": best_move}}
     except StockfishError as e:
-        logger.warning(f"Stockfish engine error: {e}")
+        logger.warning("Stockfish engine error: %s", e)
         return {"error": str(e)}
     except Exception as e:
         logger.error(
-            f"Unexpected internal error in get_best_move_tool: {e}",
+            "Unexpected internal error in get_best_move_tool: %s",
+            e,
             exc_info=True,
         )
         return {"error": "Internal server error"}
@@ -255,21 +219,22 @@ async def validate_move_tool(request: ValidateMoveRequest) -> dict:
     try:
         board = chess.Board(request.position)
     except ValueError as e:
-        logger.warning(f"Invalid FEN format in validate_move_tool: {e}")
-        return {"error": f"Invalid FEN format: {e}"}
+        logger.warning("Invalid FEN format in validate_move_tool: %s", e)
+        return {"error": "Invalid FEN format: %s" % e}
 
     try:
         move = chess.Move.from_uci(request.move)
     except ValueError as e:
-        logger.warning(f"Invalid move format in validate_move_tool: {e}")
-        return {"error": f"Invalid move format: {e}"}
+        logger.warning("Invalid move format in validate_move_tool: %s", e)
+        return {"error": "Invalid move format: %s" % e}
 
     try:
         result = move in board.legal_moves
         return {"result": result}
     except Exception as e:
         logger.error(
-            f"Unexpected internal error in validate_move_tool: {e}",
+            "Unexpected internal error in validate_move_tool: %s",
+            e,
             exc_info=True,
         )
         return {"error": "Internal server error"}
@@ -289,15 +254,16 @@ async def get_legal_moves_tool(request: PositionRequest) -> dict:
     try:
         board = chess.Board(request.position)
     except ValueError as e:
-        logger.warning(f"Invalid FEN format in get_legal_moves_tool: {e}")
-        return {"error": f"Invalid FEN format: {e}"}
+        logger.warning("Invalid FEN format in get_legal_moves_tool: %s", e)
+        return {"error": "Invalid FEN format: %s" % e}
 
     try:
         legal_moves = [move.uci() for move in board.legal_moves]
         return {"result": legal_moves}
     except Exception as e:
         logger.error(
-            f"Unexpected internal error in get_legal_moves_tool: {e}",
+            "Unexpected internal error in get_legal_moves_tool: %s",
+            e,
             exc_info=True,
         )
         return {"error": "Internal server error"}
@@ -318,8 +284,8 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
     try:
         board = chess.Board(request.position)
     except ValueError as e:
-        logger.warning(f"Invalid FEN format in get_game_status_tool: {e}")
-        return {"error": f"Invalid FEN format: {e}"}
+        logger.warning("Invalid FEN format in get_game_status_tool: %s", e)
+        return {"error": "Invalid FEN format: %s" % e}
 
     try:
         if board.is_checkmate():
@@ -338,7 +304,8 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
         return {"result": {"status": status, "winner": winner}}
     except Exception as e:
         logger.error(
-            f"Unexpected internal error in get_game_status_tool: {e}",
+            "Unexpected internal error in get_game_status_tool: %s",
+            e,
             exc_info=True,
         )
         return {"error": "Internal server error"}
@@ -357,9 +324,12 @@ def main_cli():
 
     # Logging setup should already be done by
     # setup_environment() called globally
-    logger.info("Starting MCP server in {} mode...".format(args.transport))
-    config_msg = "Configuration - Host: {}, Port: {}"
-    logger.info(config_msg.format(settings.MCP_HOST, settings.MCP_PORT))
+    logger.info("Starting MCP server in %s mode...", args.transport)
+    logger.info(
+        "Configuration - Host: %s, Port: %d",
+        settings.MCP_HOST,
+        settings.MCP_PORT,
+    )
 
     # Get stockfish path for display
     try:
@@ -367,19 +337,19 @@ def main_cli():
 
         # Make sure these messages appear in the console no matter what
         print("\033[32mINFO\033[0m:     Stockfish engine:")
-        print(f"\033[32mINFO\033[0m:     → {stockfish_path}")
-        print(f"\033[32mINFO\033[0m:     Transport mode: {args.transport}")
+        print("\033[32mINFO\033[0m:     → %s" % stockfish_path)
+        print("\033[32mINFO\033[0m:     Transport mode: %s" % args.transport)
 
         # Still log to uvicorn logger for completeness
-        uvicorn_logger = logging.getLogger("uvicorn")
+        uvicorn_logger = get_logger("uvicorn")
         uvicorn_logger.info("Stockfish engine:")
-        uvicorn_logger.info(f"→ {stockfish_path}")
-        uvicorn_logger.info(f"Transport mode: {args.transport}")
+        uvicorn_logger.info("→ %s", stockfish_path)
+        uvicorn_logger.info("Transport mode: %s", args.transport)
     except Exception as e:
-        logger.warning(f"Unable to retrieve Stockfish engine path: {e}")
+        logger.warning("Unable to retrieve Stockfish engine path: %s", e)
         print(
-            f"\033[33mWARNING\033[0m: "
-            f"Unable to retrieve Stockfish engine path: {e}"
+            "\033[33mWARNING\033[0m: "
+            "Unable to retrieve Stockfish engine path: %s" % e
         )
 
     # Run the app instance using the selected transport
@@ -391,12 +361,9 @@ def main() -> None:
     from dylangames_mcp_chess_engine.config import Settings
 
     settings = Settings()  # type: ignore
-    logging.basicConfig(
-        level=settings.log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    setup_logging(settings)
     logger.info(
-        "Starting MCP server on port %s with log level %s",
+        "Starting MCP server on port %d with log level %s",
         settings.port,
         settings.log_level,
     )
