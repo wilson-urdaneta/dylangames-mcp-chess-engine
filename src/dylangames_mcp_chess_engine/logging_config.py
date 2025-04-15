@@ -87,4 +87,4 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
         A logger instance configured according to the root logger settings
     """
     default_name = "engine"
-    return logging.getLogger(name or default_name) 
+    return logging.getLogger(name or default_name)

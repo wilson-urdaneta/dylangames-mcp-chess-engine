@@ -164,9 +164,6 @@ class StockfishEngine:
                         last_response_time = time.time()
                         if until and line.startswith(until):
                             break
-                elif time.time() - last_response_time > 1.0:
-                    # No new data for 1 second, assume engine is done
-                    break
                 elif self.process.poll() is not None:
                     raise StockfishError(
                         "Engine process terminated unexpectedly"
