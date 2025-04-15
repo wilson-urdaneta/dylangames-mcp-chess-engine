@@ -16,7 +16,10 @@ from dylangames_mcp_chess_engine.engine_wrapper import (
     StockfishError,
     _get_engine_path,
 )
-from dylangames_mcp_chess_engine.logging_config import get_logger, setup_logging
+from dylangames_mcp_chess_engine.logging_config import (
+    get_logger,
+    setup_logging,
+)
 from dylangames_mcp_chess_engine.shutdown import setup_signal_handlers
 
 logger = get_logger(__name__)
@@ -90,13 +93,13 @@ class ChessMoveResponse(BaseModel):
 class PositionRequest(BaseModel):
     """Request model for position-based queries."""
 
-    position: str = Field(..., description="Board position in FEN format.")
+    fen: str = Field(..., description="Board position in FEN format.")
 
 
 class ValidateMoveRequest(BaseModel):
     """Request model for move validation."""
 
-    position: str = Field(..., description="Board position in FEN format.")
+    fen: str = Field(..., description="Board position in FEN format.")
     move: str = Field(..., description="Move in UCI format (e.g., 'e2e4').")
 
 
@@ -210,14 +213,14 @@ async def validate_move_tool(request: ValidateMoveRequest) -> dict:
     """Validate if a move is legal in the given position.
 
     Args:
-        request: The request containing the position and move to validate.
+        request: The request containing the FEN position and move to validate.
 
     Returns:
         A dictionary containing either {"result": bool} for success
         or {"error": str} for failure.
     """
     try:
-        board = chess.Board(request.position)
+        board = chess.Board(request.fen)
     except ValueError as e:
         logger.warning("Invalid FEN format in validate_move_tool: %s", e)
         return {"error": "Invalid FEN format: %s" % e}
@@ -245,14 +248,14 @@ async def get_legal_moves_tool(request: PositionRequest) -> dict:
     """Get all legal moves in the given position.
 
     Args:
-        request: The request containing the position to analyze.
+        request: The request containing the FEN position.
 
     Returns:
         A dictionary containing either {"result": List[str]} for success
         or {"error": str} for failure.
     """
     try:
-        board = chess.Board(request.position)
+        board = chess.Board(request.fen)
     except ValueError as e:
         logger.warning("Invalid FEN format in get_legal_moves_tool: %s", e)
         return {"error": "Invalid FEN format: %s" % e}
@@ -271,18 +274,17 @@ async def get_legal_moves_tool(request: PositionRequest) -> dict:
 
 @app.tool()
 async def get_game_status_tool(request: PositionRequest) -> dict:
-    """Get the current game status from the given position.
+    """Get the game status for the given position.
 
     Args:
-        request: The request containing the position to analyze.
+        request: The request containing the FEN position.
 
     Returns:
-        dict: A dictionary with either:
-            - {"result": {"status": str, "winner": Optional[str]}}
-            - {"error": str}
+        A dictionary containing either {"result": GameStatusResponse} for success
+        or {"error": str} for failure.
     """
     try:
-        board = chess.Board(request.position)
+        board = chess.Board(request.fen)
     except ValueError as e:
         logger.warning("Invalid FEN format in get_game_status_tool: %s", e)
         return {"error": "Invalid FEN format: %s" % e}

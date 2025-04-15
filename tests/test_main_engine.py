@@ -35,7 +35,7 @@ class MockEngine:
 async def test_validate_move_tool_valid_move(test_positions):
     """Test validation of a valid chess move."""
     request = ValidateMoveRequest(
-        position=test_positions["STARTING_FEN"], move="e2e4"
+        fen=test_positions["STARTING_FEN"], move="e2e4"
     )
     response = await validate_move_tool(request)
     assert response == BoolResponse(result=True).model_dump()
@@ -45,7 +45,7 @@ async def test_validate_move_tool_valid_move(test_positions):
 async def test_validate_move_tool_invalid_syntax(test_positions):
     """Test validation of a move with invalid syntax."""
     request = ValidateMoveRequest(
-        position=test_positions["STARTING_FEN"], move="e2e9"
+        fen=test_positions["STARTING_FEN"], move="e2e9"
     )
     response = await validate_move_tool(request)
     assert "error" in response
@@ -56,7 +56,7 @@ async def test_validate_move_tool_invalid_syntax(test_positions):
 async def test_validate_move_tool_illegal_move(test_positions):
     """Test validation of an illegal chess move."""
     request = ValidateMoveRequest(
-        position=test_positions["STARTING_FEN"], move="e1e2"
+        fen=test_positions["STARTING_FEN"], move="e1e2"
     )
     response = await validate_move_tool(request)
     assert response == BoolResponse(result=False).model_dump()
@@ -65,7 +65,7 @@ async def test_validate_move_tool_illegal_move(test_positions):
 @pytest.mark.asyncio
 async def test_validate_move_tool_invalid_fen():
     """Test validation with an invalid FEN string."""
-    request = ValidateMoveRequest(position="invalid fen", move="e2e4")
+    request = ValidateMoveRequest(fen="invalid fen", move="e2e4")
     response = await validate_move_tool(request)
     assert "error" in response
     assert "Invalid FEN format" in response["error"]
@@ -74,7 +74,7 @@ async def test_validate_move_tool_invalid_fen():
 @pytest.mark.asyncio
 async def test_get_legal_moves_tool_starting_position(test_positions):
     """Test getting legal moves from the starting position."""
-    request = PositionRequest(position=test_positions["STARTING_FEN"])
+    request = PositionRequest(fen=test_positions["STARTING_FEN"])
     response = await get_legal_moves_tool(request)
     assert "result" in response
     # Since we can't know exactly what moves will be returned,
@@ -87,7 +87,7 @@ async def test_get_legal_moves_tool_starting_position(test_positions):
 @pytest.mark.asyncio
 async def test_get_legal_moves_tool_checkmate(test_positions):
     """Test getting legal moves in a checkmate position."""
-    request = PositionRequest(position=test_positions["CHECKMATE_FEN"])
+    request = PositionRequest(fen=test_positions["CHECKMATE_FEN"])
     response = await get_legal_moves_tool(request)
     assert response == ListResponse(result=[]).model_dump()
 
@@ -95,7 +95,7 @@ async def test_get_legal_moves_tool_checkmate(test_positions):
 @pytest.mark.asyncio
 async def test_get_legal_moves_tool_invalid_fen():
     """Test getting legal moves with an invalid FEN string."""
-    request = PositionRequest(position="invalid fen")
+    request = PositionRequest(fen="invalid fen")
     response = await get_legal_moves_tool(request)
     assert "error" in response
     assert "Invalid FEN format" in response["error"]
@@ -104,7 +104,7 @@ async def test_get_legal_moves_tool_invalid_fen():
 @pytest.mark.asyncio
 async def test_game_status_tool_in_progress(test_positions):
     """Test game status detection for an ongoing game."""
-    request = PositionRequest(position=test_positions["STARTING_FEN"])
+    request = PositionRequest(fen=test_positions["STARTING_FEN"])
     response = await get_game_status_tool(request)
     expected = {
         "result": GameStatusResponse(
@@ -117,7 +117,7 @@ async def test_game_status_tool_in_progress(test_positions):
 @pytest.mark.asyncio
 async def test_game_status_tool_checkmate(test_positions):
     """Test game status detection for a checkmate position."""
-    request = PositionRequest(position=test_positions["CHECKMATE_FEN"])
+    request = PositionRequest(fen=test_positions["CHECKMATE_FEN"])
     response = await get_game_status_tool(request)
     expected = {
         "result": GameStatusResponse(
@@ -130,7 +130,7 @@ async def test_game_status_tool_checkmate(test_positions):
 @pytest.mark.asyncio
 async def test_game_status_tool_stalemate(test_positions):
     """Test game status detection for a stalemate position."""
-    request = PositionRequest(position=test_positions["STALEMATE_FEN"])
+    request = PositionRequest(fen=test_positions["STALEMATE_FEN"])
     response = await get_game_status_tool(request)
     expected = {
         "result": GameStatusResponse(
@@ -143,9 +143,7 @@ async def test_game_status_tool_stalemate(test_positions):
 @pytest.mark.asyncio
 async def test_game_status_tool_insufficient_material(test_positions):
     """Test game status detection for insufficient material."""
-    request = PositionRequest(
-        position=test_positions["INSUFFICIENT_MATERIAL_FEN"]
-    )
+    request = PositionRequest(fen=test_positions["INSUFFICIENT_MATERIAL_FEN"])
     response = await get_game_status_tool(request)
     expected = {
         "result": GameStatusResponse(status="DRAW", winner=None).model_dump()
@@ -156,7 +154,7 @@ async def test_game_status_tool_insufficient_material(test_positions):
 @pytest.mark.asyncio
 async def test_game_status_tool_invalid_fen():
     """Test game status detection with an invalid FEN string."""
-    request = PositionRequest(position="invalid fen")
+    request = PositionRequest(fen="invalid fen")
     response = await get_game_status_tool(request)
     assert "error" in response
     assert "Invalid FEN format" in response["error"]
