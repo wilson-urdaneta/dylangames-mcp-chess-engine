@@ -79,4 +79,4 @@ def test_partial_override():
     assert settings.MCP_HOST == "127.0.0.1"  # Default
     assert settings.MCP_PORT == 8888  # Custom
     assert settings.ENGINE_PATH is None  # Default
-    assert settings.LOG_LEVEL == "DEBUG"  # Changed from INFO to DEBUG
+    assert settings.LOG_LEVEL == "DEBUG"  # Set to DEBUG in conftest.py fixture

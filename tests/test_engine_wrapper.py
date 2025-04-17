@@ -247,6 +247,9 @@ def test_get_engine_path_error():
     with (
         patch("platform.system", return_value="unsupported"),
         patch.dict(os.environ, {}, clear=True),
+        # Ensure all path checks fail so we hit the platform check
+        patch("pathlib.Path.is_file", return_value=False),
+        patch("os.access", return_value=False),
     ):
         error_msg = "Unsupported platform: unsupported"
         with pytest.raises(EngineBinaryError, match=error_msg):
@@ -361,6 +364,9 @@ class TestEnginePath:
         with (
             patch("platform.system", return_value="unsupported"),
             patch.dict(os.environ, {}, clear=True),
+            # Ensure all path checks fail so we hit the platform check
+            patch("pathlib.Path.is_file", return_value=False),
+            patch("os.access", return_value=False),
         ):
             error_msg = "Unsupported platform: unsupported"
             with pytest.raises(EngineBinaryError, match=error_msg):
