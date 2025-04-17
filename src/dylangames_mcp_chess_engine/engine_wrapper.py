@@ -32,13 +32,27 @@ def _get_engine_path() -> Path:
         if path.is_file() and os.access(path, os.X_OK):
             logger.info(f"Using engine binary from ENGINE_PATH: {path}")
             return path
-        raise EngineBinaryError(
-            f"ENGINE_PATH is set but points to invalid binary: {path}"
-            " (file must exist and be executable)"
+        logger.warning(
+            f"ENGINE_PATH set but invalid: {path} "
+            "(file must exist and be executable)"
         )
+        # Don't raise error yet, try system paths and fallback path
+
+    # Next, try common system paths for stockfish
+    logger.info("Checking common system paths for Stockfish binary")
+    system_paths = [
+        Path("/usr/games/stockfish"),
+        Path("/usr/bin/stockfish"),
+        Path("/usr/local/bin/stockfish"),
+    ]
+
+    for path in system_paths:
+        if path.is_file() and os.access(path, os.X_OK):
+            logger.info(f"Using engine binary from system path: {path}")
+            return path
 
     # Fallback to constructed path
-    logger.info("ENGINE_PATH not set, attempting fallback path")
+    logger.info("System paths not valid, attempting fallback path")
 
     # Get OS - either from ENV or detect
     engine_os = os.environ.get("ENGINE_OS")
@@ -69,15 +83,24 @@ def _get_engine_path() -> Path:
     ).resolve()
 
     if not fallback_path.is_file():
-        raise EngineBinaryError(
+        # If ENGINE_PATH was set but invalid, mention it in the error
+        error_msg = (
             "Stockfish binary not found at fallback path: "
             f"{fallback_path}\n"
+        )
+        if engine_path:
+            error_msg += (
+                f"Note: ENGINE_PATH was set ({engine_path}) but is invalid.\n"
+            )
+
+        error_msg += (
             "Please either:\n"
             "1. Set ENGINE_PATH to point to your Stockfish binary, or\n"
             "2. Download the appropriate binary from "
             "https://github.com/official-stockfish/Stockfish/releases\n"
             f"   and place it at {fallback_path}"
         )
+        raise EngineBinaryError(error_msg)
 
     if not os.access(fallback_path, os.X_OK):
         raise EngineBinaryError(
