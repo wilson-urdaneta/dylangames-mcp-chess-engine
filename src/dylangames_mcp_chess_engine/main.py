@@ -1,7 +1,6 @@
 """Main module for the MCP chess engine service."""
 
 import argparse
-import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator, List, Optional
@@ -280,8 +279,8 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
         request: The request containing the FEN position.
 
     Returns:
-        A dictionary containing either {"result": GameStatusResponse} for success
-        or {"error": str} for failure.
+        A dictionary containing either {"result": GameStatusResponse}
+        for success or {"error": str} for failure.
     """
     try:
         board = chess.Board(request.fen)
@@ -366,8 +365,8 @@ def main() -> None:
     setup_logging(settings)
     logger.info(
         "Starting MCP server on port %d with log level %s",
-        settings.port,
-        settings.log_level,
+        settings.MCP_PORT,
+        settings.LOG_LEVEL,
     )
 
 

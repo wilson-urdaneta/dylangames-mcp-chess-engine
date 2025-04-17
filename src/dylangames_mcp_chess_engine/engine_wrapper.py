@@ -126,7 +126,7 @@ class StockfishEngine:
             raise StockfishError(f"Failed to send command: {e}")
 
     def _read_response(
-        self, until: str = None, timeout: float = 2.0
+        self, until: str | None = None, timeout: float = 2.0
     ) -> List[str]:
         """Read response from the Stockfish engine.
 
@@ -140,9 +140,8 @@ class StockfishEngine:
         if not self.process or self.process.poll() is not None:
             raise StockfishError("Engine process is not running")
 
-        responses = []
+        responses: List[str] = []
         start_time = time.time()
-        last_response_time = start_time
 
         try:
             while True:
@@ -161,7 +160,6 @@ class StockfishEngine:
                     if line:
                         logger.debug(f"Received: {line}")
                         responses.append(line)
-                        last_response_time = time.time()
                         if until and line.startswith(until):
                             break
                 elif self.process.poll() is not None:
@@ -215,7 +213,9 @@ class StockfishEngine:
             self.stop()
             raise StockfishError(f"Failed to initialize engine: {e}")
 
-    def get_best_move(self, fen: str, move_history: List[str] = None) -> str:
+    def get_best_move(
+        self, fen: str, move_history: List[str] | None = None
+    ) -> str:
         """Get the best move for a given position."""
         if not self.process or self.process.poll() is not None:
             raise StockfishError("Engine not initialized or not running")

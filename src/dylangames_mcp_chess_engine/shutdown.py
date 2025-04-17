@@ -4,14 +4,23 @@ import atexit
 import logging
 import signal
 import sys
-from typing import Set, TypeVar
+from typing import Generic, Protocol, Set, TypeVar
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
+
+class Stoppable(Protocol):
+    """Protocol for objects that can be stopped."""
+
+    def stop(self) -> None:
+        """Stop the object."""
+        pass
 
 
-class EngineRegistry:
+T = TypeVar("T", bound=Stoppable)
+
+
+class EngineRegistry(Generic[T]):
     """Registry to track and manage engine processes.
 
     This registry keeps track of all running engine instances and provides

@@ -35,9 +35,9 @@ def test_positions():
             "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 0 1"
         ),
         "STALEMATE_FEN": ("k7/8/1Q6/8/8/8/8/K7 b - - 0 1"),
-        "INSUFFICIENT_MATERIAL_FEN": (  # King vs King
+        "INSUFFICIENT_MATERIAL_FEN": (
             "8/8/8/8/8/8/8/k1K5 w - - 0 1"
-        ),
+        ),  # King vs King
     }
 
 
