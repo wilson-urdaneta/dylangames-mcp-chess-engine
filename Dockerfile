@@ -13,7 +13,7 @@ RUN poetry config virtualenvs.create false
 COPY pyproject.toml poetry.lock ./
 
 # Install only production dependencies
-RUN poetry install --no-root --no-dev --no-interaction --no-ansi
+RUN poetry install --no-root --only main --no-interaction --no-ansi
 
 # Final stage
 FROM python:3.10-slim
