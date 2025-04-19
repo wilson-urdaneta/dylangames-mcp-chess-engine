@@ -8,12 +8,8 @@ on:
   pull_request:
     branches: [ main ]
 
-# Environment variables
-env:
-  ENABLE_PYPI: true  # Set to true to enable PyPI publishing
-
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,28 +26,15 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Run linters
+      - name: Lint
         run: |
           poetry run black . --check
           poetry run isort . --check
           poetry run flake8 .
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Poetry
+      - name: Type check
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-
-      - name: Install dependencies
-        run: poetry install
+          poetry run mypy src/
 
       - name: Install Stockfish
         run: |
@@ -61,29 +44,18 @@ jobs:
           echo "ENGINE_PATH=$STOCKFISH_PATH" >> $GITHUB_ENV
           echo "Using Stockfish at: $STOCKFISH_PATH"
 
-      - name: Run tests
+      - name: Test with coverage
         env:
           ENGINE_PATH: ${{ env.ENGINE_PATH }}
         run: |
-          poetry run python -m pytest tests/ -v
+          poetry run pytest --cov=chesspal_mcp_engine --cov-report=xml --cov-report=term
 
-  package:
-    needs: [lint, test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         with:
-          python-version: '3.10'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-
-      - name: Install dependencies
-        run: poetry install
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build package
         run: poetry build
@@ -95,7 +67,7 @@ jobs:
           path: dist/
 
   build-and-push-docker:
-    needs: [lint, test]
+    needs: [build]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
@@ -132,12 +104,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  release:
-    needs: package
+  publish:
+    needs: build
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-internal')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Allows creating releases, uploading assets to releases
     steps:
       - uses: actions/checkout@v4
 
@@ -164,7 +134,6 @@ jobs:
           prerelease: ${{ contains(github.ref, '-internal') }}
 
       - name: Publish to PyPI
-        if: ${{ env.ENABLE_PYPI == 'true' }}
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: poetry publish
