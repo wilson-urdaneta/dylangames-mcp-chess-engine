@@ -56,3 +56,6 @@ engines/**/stockfish_*
 # Environment variables
 .env
 .env.local
+
+# mypy
+.mypy_cache/
