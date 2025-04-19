@@ -41,16 +41,7 @@ def setup_environment():
 
 
 # Initialize logging first - This needs to happen early
-# But the setup_environment call needs to be deferred
 setup_logging(settings.LOG_LEVEL)  # Pass log level directly
-
-# logger = setup_environment() # Defer this call
-
-# logger.info( # Defer this call
-#     "Configuring FastMCP to use host='%s' port=%d",
-#     settings.MCP_HOST,
-#     settings.MCP_PORT,
-# )
 
 
 class ChessMoveRequest(BaseModel):

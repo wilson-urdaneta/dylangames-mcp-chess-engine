@@ -50,6 +50,11 @@ RUN chown -R engineuser:engineuser /app
 # Switch to non-root user
 USER engineuser
 
+# Expose the MCP host (configurable via MCP_HOST env var)
+# Default set in config.py, but can be overridden
+ENV MCP_HOST=0.0.0.0
+EXPOSE ${MCP_HOST}
+
 # Expose the MCP port (configurable via MCP_PORT env var)
 # Default set in config.py, but can be overridden
 ENV MCP_PORT=9000
