@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: wilson-urdaneta/dylangames-chess-engine
+      IMAGE_NAME: wilson-urdaneta/chesspal-mcp-engine
     permissions:
       contents: read
       packages: write
