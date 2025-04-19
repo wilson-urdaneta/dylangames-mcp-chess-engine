@@ -9,12 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from chesspal_mcp_engine.engine_wrapper import (
-    EngineBinaryError,
-    StockfishEngine,
-    StockfishError,
-    _get_engine_path,
-)
+from chesspal_mcp_engine.engine_wrapper import EngineBinaryError, StockfishEngine, StockfishError, _get_engine_path
 
 
 def get_os_name():
@@ -143,8 +138,7 @@ def test_get_best_move_with_history(mock_engine):
         mock_get_path.return_value = Path("/mock/stockfish")
         mock_engine.stdout.responses.extend(
             [
-                b"info depth 10 seldepth 15 multipv 1 score cp -52 nodes 25 "
-                b"nps 25000 tbhits 0 time 1 pv e7e5\n",
+                b"info depth 10 seldepth 15 multipv 1 score cp -52 nodes 25 " b"nps 25000 tbhits 0 time 1 pv e7e5\n",
                 b"bestmove e7e5 ponder g1f3\n",
             ]
         )
@@ -168,12 +162,9 @@ def test_get_best_move_engine_error(mock_engine):
             b"uciok\n",
             b"readyok\n",
             # Then simulate engine responding with info but no bestmove
-            b"info depth 10 seldepth 15 multipv 1 score cp 38 nodes 20 "
-            b"nps 20000 tbhits 0 time 1 pv e2e4\n",
-            b"info depth 15 seldepth 20 multipv 1 score cp 45 nodes 50 "
-            b"nps 25000 tbhits 0 time 2 pv e2e4\n",
-            b"info depth 20 seldepth 25 multipv 1 score cp 52 nodes 100 "
-            b"nps 30000 tbhits 0 time 3 pv e2e4\n",
+            b"info depth 10 seldepth 15 multipv 1 score cp 38 nodes 20 " b"nps 20000 tbhits 0 time 1 pv e2e4\n",
+            b"info depth 15 seldepth 20 multipv 1 score cp 45 nodes 50 " b"nps 25000 tbhits 0 time 2 pv e2e4\n",
+            b"info depth 20 seldepth 25 multipv 1 score cp 52 nodes 100 " b"nps 30000 tbhits 0 time 3 pv e2e4\n",
         ]
         engine = StockfishEngine()
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

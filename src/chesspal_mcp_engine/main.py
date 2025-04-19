@@ -2,7 +2,8 @@
 
 import argparse
 from contextlib import asynccontextmanager
-from pathlib import Path
+
+# from pathlib import Path # Removed unused import
 from typing import AsyncIterator, List, Optional
 
 import chess
@@ -14,49 +15,48 @@ from chesspal_mcp_engine.engine_wrapper import StockfishEngine, StockfishError, 
 from chesspal_mcp_engine.logging_config import get_logger, setup_logging
 from chesspal_mcp_engine.shutdown import setup_signal_handlers
 
-logger = get_logger(__name__)
+# Global engine instance - Initialize as None
+_engine: Optional[StockfishEngine] = None
+logger = get_logger(__name__)  # Get logger instance
 
 
 def setup_environment():
-    """Set up and validate the environment."""
+    """Set up and validate the environment. Moved inside main_cli."""
     global _engine
 
     # Set up signal handlers for graceful shutdown
     setup_signal_handlers()
     logger.info("Signal handlers for graceful shutdown are set up")
 
-    # Test engine initialization
+    # Initialize engine
     try:
         _engine = StockfishEngine()
-        logger.info("Engine test initialization successful")
-        # Log the Stockfish engine path but don't print it here
-        # We'll print it at startup time in main_cli
+        logger.info("Engine initialization successful")
         try:
             stockfish_path = _get_engine_path()
             logger.info("Stockfish engine binary location: %s", stockfish_path)
         except Exception as e:
             logger.warning("Unable to retrieve Stockfish engine path: %s", e)
     except StockfishError as e:
-        logger.error("Engine initialization error: %s", e)
-        # Let initialization handle the error if path is bad
+        logger.error("Engine initialization failed: %s", e)
+        # Depending on desired behavior, might want to exit or raise here
+        # For now, allow server to start but tools might fail
+    except Exception as e:
+        logger.error("Unexpected error during engine initialization: %s", e, exc_info=True)
+        # Allow server to start but tools might fail
 
-    return logger
 
-
-# Initialize logging first
+# Initialize logging first - This needs to happen early
+# But the setup_environment call needs to be deferred
 setup_logging(settings.LOG_LEVEL)  # Pass log level directly
 
-# Then set up the environment
-logger = setup_environment()
+# logger = setup_environment() # Defer this call
 
-logger.info(
-    "Configuring FastMCP to use host='%s' port=%d",
-    settings.MCP_HOST,
-    settings.MCP_PORT,
-)
-
-# Global engine instance
-_engine: Optional[StockfishEngine] = None
+# logger.info( # Defer this call
+#     "Configuring FastMCP to use host='%s' port=%d",
+#     settings.MCP_HOST,
+#     settings.MCP_PORT,
+# )
 
 
 class ChessMoveRequest(BaseModel):
@@ -104,9 +104,7 @@ class GameStatusResponse(BaseModel):
         ...,
         description="Game status (IN_PROGRESS, CHECKMATE, STALEMATE, DRAW...)",
     )
-    winner: Optional[str] = Field(
-        None, description="Winner ('WHITE', 'BLACK') if applicable, else null."
-    )
+    winner: Optional[str] = Field(None, description="Winner ('WHITE', 'BLACK') if applicable, else null.")
 
 
 @asynccontextmanager
@@ -296,7 +294,7 @@ async def get_game_status_tool(request: PositionRequest) -> dict:
 
 
 def main_cli():
-    """Run the MCP server with command line arguments."""
+    """Parse arguments, set up environment, and run the MCP server."""
     parser = argparse.ArgumentParser(description="Chess Engine MCP Server")
     parser.add_argument(
         "--transport",
@@ -304,10 +302,11 @@ def main_cli():
         default="sse",  # Default to SSE
         help=("Transport mode for the MCP server " "(default: sse)"),
     )
-    args = parser.parse_args()
+    args = parser.parse_args()  # Parse args early to handle --help
 
-    # Logging setup should already be done by
-    # setup_environment() called globally
+    # Now setup environment (logging is already set up globally)
+    setup_environment()
+
     logger.info("Starting MCP server in %s mode...", args.transport)
     logger.info(
         "Configuration - Host: %s, Port: %d",
@@ -337,19 +336,7 @@ def main_cli():
     app.run(transport=args.transport)
 
 
-def main() -> None:
-    """Start the MCP server with the configured settings."""
-    # Settings are now loaded globally in config.py
-    # Logging is initialized globally before setup_environment
-    # Re-setup logging here in case settings changed via env vars after initial import?
-    # Or rely on initial setup? Let's rely on initial setup for now.
-    # setup_logging(settings.LOG_LEVEL) # Pass log level directly
-    logger.info(
-        "Starting MCP server on port %d with log level %s",
-        settings.MCP_PORT,
-        settings.LOG_LEVEL,
-    )
-
+# Removed redundant main() function
 
 if __name__ == "__main__":
     main_cli()

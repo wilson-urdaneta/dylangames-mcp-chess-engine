@@ -32,9 +32,7 @@ def _get_engine_path() -> Path:
         if path.is_file() and os.access(path, os.X_OK):
             logger.info(f"Using engine binary from ENGINE_PATH: {path}")
             return path
-        logger.warning(
-            f"ENGINE_PATH set but invalid: {path} " "(file must exist and be executable)"
-        )
+        logger.warning(f"ENGINE_PATH set but invalid: {path} " "(file must exist and be executable)")
         # Don't raise error yet, try system paths and fallback path
 
     # Next, try common system paths for stockfish
@@ -73,12 +71,7 @@ def _get_engine_path() -> Path:
     binary_name = "stockfish.exe" if engine_os == "windows" else "stockfish"
 
     fallback_path = (
-        Path(__file__).parent.parent.parent
-        / "engines"
-        / engine_name
-        / engine_version
-        / engine_os
-        / binary_name
+        Path(__file__).parent.parent.parent / "engines" / engine_name / engine_version / engine_os / binary_name
     ).resolve()
 
     if not fallback_path.is_file():

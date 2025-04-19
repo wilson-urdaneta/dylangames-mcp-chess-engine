@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import httpx  # Moved import to top
 import pytest
 import pytest_asyncio
 from mcp.client.session import ClientSession
@@ -83,35 +84,72 @@ def logs_dir():
     return setup_test_logging()
 
 
+# Removed misplaced import httpx
+
+
 @pytest_asyncio.fixture
 async def run_server():
-    """Start the MCP server as a subprocess."""
-    # Start the server
-    server_process = subprocess.Popen(
-        [sys.executable, "-m", "chesspal_mcp_engine.main"],
-        env=os.environ.copy(),
-    )
-
-    # Wait for server to start
-    await asyncio.sleep(2)
+    """Start the MCP server as a subprocess and wait for it to be ready."""
+    server_process = None
+    host = os.getenv("MCP_HOST", "127.0.0.1")
+    port = int(os.getenv("MCP_PORT", "9000"))
+    sse_url = f"http://{host}:{port}/sse"
+    startup_timeout = 15  # seconds
 
     try:
-        yield
+        # Start the server
+        logger.info("Starting server process for integration test...")
+        server_process = subprocess.Popen(
+            [sys.executable, "-m", "chesspal_mcp_engine.main"],
+            env=os.environ.copy(),
+            stdout=subprocess.PIPE,  # Capture stdout/stderr for debugging if needed
+            stderr=subprocess.PIPE,
+        )
+
+        # Wait for the server to become ready by polling the SSE endpoint
+        logger.info(f"Waiting up to {startup_timeout}s for server at {sse_url}...")
+        async with httpx.AsyncClient() as client:
+            for _ in range(startup_timeout * 2):  # Check twice per second
+                try:
+                    response = await client.get(sse_url, timeout=0.5)
+                    if response.status_code == 200:
+                        logger.info("Server is ready.")
+                        break
+                except (httpx.ConnectError, httpx.TimeoutException):
+                    pass  # Server not ready yet
+                await asyncio.sleep(0.5)
+            else:  # Loop finished without break
+                # Capture output before failing
+                stdout, stderr = server_process.communicate()
+                logger.error("Server failed to start within timeout.")
+                logger.error("Server stdout:\n%s", stdout.decode() if stdout else "N/A")
+                logger.error("Server stderr:\n%s", stderr.decode() if stderr else "N/A")
+                pytest.fail(f"Server did not become ready at {sse_url} within {startup_timeout} seconds.")
+
+        yield  # Server is ready, run the test
+
     finally:
-        # Stop the server
-        if sys.platform == "win32":
-            server_process.terminate()
-        else:
-            server_process.send_signal(signal.SIGTERM)
-        try:
-            server_process.wait(timeout=10)  # Increase timeout to 10 seconds
-        except subprocess.TimeoutExpired:
-            # Force kill if graceful shutdown fails
+        # Stop the server only if it was successfully started
+        if server_process:
+            logger.info("Stopping server process...")
             if sys.platform == "win32":
-                server_process.kill()
+                server_process.terminate()
             else:
-                server_process.send_signal(signal.SIGKILL)
-            server_process.wait()
+                server_process.send_signal(signal.SIGTERM)
+            try:
+                server_process.wait(timeout=10)  # Increase timeout to 10 seconds
+                logger.info("Server process stopped gracefully.")
+            except subprocess.TimeoutExpired:
+                logger.warning("Server process did not terminate gracefully killing.")
+                # Force kill if graceful shutdown fails
+                if sys.platform == "win32":
+                    server_process.kill()
+                else:
+                    server_process.send_signal(signal.SIGKILL)
+                server_process.wait()
+                logger.info("Server process killed.")
+        else:
+            logger.info("Server process was not started successfully no cleanup needed.")
 
 
 @pytest.mark.integration

@@ -1,88 +1,70 @@
-"""Centralized logging configuration for the chess engine service."""
+"""Centralized structured logging configuration using structlog."""
 
 import logging
-import logging.handlers
-import os
 import sys
 from typing import Optional
 
+import structlog
 
-def setup_logging(log_level: str) -> None:  # Accept log_level directly
-    """Set up logging configuration for the application.
 
-    This function configures the root logger with three handlers:
-    1. Console handler (stderr) for WARNING and above
-    2. Main rotating file handler for DEBUG and above
-    3. Error rotating file handler for ERROR and above
+def setup_logging(log_level: str) -> None:
+    """Set up structlog configuration for JSON logging to stderr.
 
     Args:
-        settings: Application settings containing LOG_LEVEL
+        log_level: The minimum log level string (e.g., "INFO", "DEBUG").
     """
-    # Define log directory and create if it doesn't exist
-    log_dir = "logs"
-    os.makedirs(log_dir, exist_ok=True)
+    log_level_int = getattr(logging, log_level.upper(), logging.INFO)
 
-    # Define log file paths
-    main_log_file = os.path.join(log_dir, "engine.log")
-    error_log_file = os.path.join(log_dir, "engine.error.log")
+    structlog.configure(
+        processors=[
+            # Add log level and logger name info from the standard logger record.
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+            # Add timestamps.
+            structlog.processors.TimeStamper(fmt="iso"),
+            # Perform %-style formatting.
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        # Use stdlib's logging infrastructure for output.
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
 
-    # Define log format
-    log_format = "%(asctime)s - %(levelname)-8s - %(name)-25s - %(message)s"
-    formatter = logging.Formatter(log_format)
+    # Configure the underlying stdlib formatter and handler.
+    formatter = structlog.stdlib.ProcessorFormatter(
+        # These run ONLY on the final output dict.
+        processor=structlog.processors.JSONRenderer(),
+        # Keep foreign log messages (from non-structlog loggers) as-is.
+        foreign_pre_chain=[structlog.stdlib.add_log_level, structlog.stdlib.add_logger_name],
+    )
 
-    # Get root logger and clear any existing handlers
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(formatter)
+
+    # Get the root logger, clear handlers, set level, and add the new handler.
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
-    root_logger.setLevel(log_level)  # Use passed argument
+    root_logger.setLevel(log_level_int)
+    root_logger.addHandler(handler)
 
-    # Configure console handler (stderr)
-    console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setLevel(logging.WARNING)
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
-
-    # Configure main rotating file handler
-    main_file_handler = logging.handlers.RotatingFileHandler(
-        main_log_file,
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5,
-        encoding="utf-8",
-        mode="a",
-    )
-    main_file_handler.setLevel(logging.DEBUG)
-    main_file_handler.setFormatter(formatter)
-    root_logger.addHandler(main_file_handler)
-
-    # Configure error rotating file handler
-    error_file_handler = logging.handlers.RotatingFileHandler(
-        error_log_file,
-        maxBytes=5 * 1024 * 1024,  # 5MB
-        backupCount=3,
-        encoding="utf-8",
-        mode="a",
-    )
-    error_file_handler.setLevel(logging.ERROR)
-    error_file_handler.setFormatter(formatter)
-    root_logger.addHandler(error_file_handler)
-
-    # Log initial configuration
-    root_logger.info(
-        "Logging configured: Level %s, Console (WARNING+), "
-        "File (DEBUG+ to %s), Error File (ERROR+ to %s)",
-        log_level,  # Use passed argument
-        main_log_file,
-        error_log_file,
+    # Log initial configuration message using structlog
+    logger = get_logger(__name__)
+    logger.info(
+        "Structlog configured",
+        level=log_level,
+        format="JSON",
+        output="stderr",
     )
 
 
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """Get a logger instance.
+def get_logger(name: Optional[str] = None) -> structlog.stdlib.BoundLogger:
+    """Get a structlog logger instance, compatible with standard logging.
 
     Args:
-        name: Logger name, defaults to 'engine' if not provided
+        name: Logger name.
 
     Returns:
-        A logger instance configured according to the root logger settings
+        A structlog BoundLogger instance.
     """
-    default_name = "engine"
-    return logging.getLogger(name or default_name)
+    return structlog.stdlib.get_logger(name or "chesspal_engine")

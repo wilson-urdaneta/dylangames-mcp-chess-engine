@@ -1,7 +1,6 @@
 """Configuration management for the chess engine service."""
 
-import os
-import platform
+import platform  # Removed unused os import
 from enum import Enum
 from typing import Any, Optional  # Added Any
 
@@ -66,9 +65,7 @@ class Settings(BaseSettings):
         default_factory=_get_default_os,
         description="Operating system for the engine binary. Defaults to current OS.",
     )
-    CHESSPAL_ENGINE_BINARY: str = Field(
-        default="stockfish", description="Name of the engine binary file."
-    )
+    CHESSPAL_ENGINE_BINARY: str = Field(default="stockfish", description="Name of the engine binary file.")
     CHESSPAL_ENGINE_DEPTH: int = Field(default=10, description="Search depth for the chess engine.")
     CHESSPAL_ENGINE_TIMEOUT_MS: int = Field(
         default=1000, description="Timeout in milliseconds for engine move calculation."
@@ -99,9 +96,7 @@ class Settings(BaseSettings):
         # Note: Pydantic v2 validation logic differs slightly.
         # We access already validated 'ENVIRONMENT' if available.
         # This validator runs *before* the main LOG_LEVEL validator.
-        env = values.data.get(
-            "ENVIRONMENT", Environment.DEVELOPMENT.value
-        )  # Get potential env value
+        env = values.data.get("ENVIRONMENT", Environment.DEVELOPMENT.value)  # Get potential env value
         if v is None:  # If LOG_LEVEL is not set via env var
             if env == Environment.DEVELOPMENT.value:
                 return LogLevel.DEBUG.value
