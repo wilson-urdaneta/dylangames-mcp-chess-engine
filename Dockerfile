@@ -4,16 +4,21 @@ FROM python:3.10-slim AS builder
 WORKDIR /app
 
 # Install poetry
-RUN pip install poetry
+RUN pip install --no-cache-dir poetry
 
 # Configure poetry to not create a virtual environment
 RUN poetry config virtualenvs.create false
 
-# Copy dependency definitions
+# Copy project files needed for install
 COPY pyproject.toml poetry.lock ./
+COPY README.md ./
+COPY src/ /app/src/
 
-# Install only production dependencies
+# Install dependencies first (faster layer caching)
 RUN poetry install --no-root --only main --no-interaction --no-ansi
+
+# Install the project itself (including scripts)
+RUN poetry install --no-interaction --no-ansi
 
 # Final stage
 FROM python:3.10-slim
@@ -29,14 +34,14 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set environment variable for Stockfish path
+# Set environment variable for Stockfish path (can be overridden)
 ENV ENGINE_PATH="/usr/games/stockfish"
 
-# Copy installed dependencies from builder stage
+# Copy installed dependencies AND scripts from builder stage
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy source code
+# Copy source code (needed for runtime imports)
 COPY src/ /app/src/
 
 # Set ownership of the application directory to the non-root user
@@ -46,8 +51,12 @@ RUN chown -R engineuser:engineuser /app
 USER engineuser
 
 # Expose the MCP port (configurable via MCP_PORT env var)
+# Default set in config.py, but can be overridden
 ENV MCP_PORT=9000
 EXPOSE ${MCP_PORT}
 
-# Set default command to run the engine with SSE transport
-CMD ["python", "-m", "dylangames_mcp_chess_engine.main", "--transport", "sse"]
+# Use the standardized script entry point via ENTRYPOINT
+# Allows passing arguments like --transport via docker run
+ENTRYPOINT ["chesspal-mcp-engine"]
+# Default arguments (can be overridden)
+CMD []

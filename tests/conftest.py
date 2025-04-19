@@ -28,16 +28,12 @@ def setup_test_env():
 def test_positions():
     """Common test positions used across test files."""
     return {
-        "STARTING_FEN": (
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        ),
+        "STARTING_FEN": ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
         "CHECKMATE_FEN": (  # Fool's mate
             "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 0 1"
         ),
         "STALEMATE_FEN": ("k7/8/1Q6/8/8/8/8/K7 b - - 0 1"),
-        "INSUFFICIENT_MATERIAL_FEN": (
-            "8/8/8/8/8/8/8/k1K5 w - - 0 1"
-        ),  # King vs King
+        "INSUFFICIENT_MATERIAL_FEN": ("8/8/8/8/8/8/8/k1K5 w - - 0 1"),  # King vs King
     }
 
 
@@ -59,9 +55,7 @@ def mock_engine_process():
 @pytest.fixture
 def mock_engine_path():
     """Mock engine path for tests."""
-    with patch(
-        "dylangames_mcp_chess_engine.engine_wrapper._get_engine_path"
-    ) as mock_get_path:
+    with patch("chesspal_mcp_engine.engine_wrapper._get_engine_path") as mock_get_path:
         mock_get_path.return_value = Path("/mock/stockfish")
         yield mock_get_path
 

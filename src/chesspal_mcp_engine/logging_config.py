@@ -6,10 +6,8 @@ import os
 import sys
 from typing import Optional
 
-from dylangames_mcp_chess_engine.config import Settings
 
-
-def setup_logging(settings: Settings) -> None:
+def setup_logging(log_level: str) -> None:  # Accept log_level directly
     """Set up logging configuration for the application.
 
     This function configures the root logger with three handlers:
@@ -35,7 +33,7 @@ def setup_logging(settings: Settings) -> None:
     # Get root logger and clear any existing handlers
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
-    root_logger.setLevel(settings.LOG_LEVEL)
+    root_logger.setLevel(log_level)  # Use passed argument
 
     # Configure console handler (stderr)
     console_handler = logging.StreamHandler(sys.stderr)
@@ -71,7 +69,7 @@ def setup_logging(settings: Settings) -> None:
     root_logger.info(
         "Logging configured: Level %s, Console (WARNING+), "
         "File (DEBUG+ to %s), Error File (ERROR+ to %s)",
-        settings.LOG_LEVEL,
+        log_level,  # Use passed argument
         main_log_file,
         error_log_file,
     )

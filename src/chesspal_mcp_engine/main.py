@@ -9,17 +9,10 @@ import chess
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
-from dylangames_mcp_chess_engine.config import settings
-from dylangames_mcp_chess_engine.engine_wrapper import (
-    StockfishEngine,
-    StockfishError,
-    _get_engine_path,
-)
-from dylangames_mcp_chess_engine.logging_config import (
-    get_logger,
-    setup_logging,
-)
-from dylangames_mcp_chess_engine.shutdown import setup_signal_handlers
+from chesspal_mcp_engine.config import settings
+from chesspal_mcp_engine.engine_wrapper import StockfishEngine, StockfishError, _get_engine_path
+from chesspal_mcp_engine.logging_config import get_logger, setup_logging
+from chesspal_mcp_engine.shutdown import setup_signal_handlers
 
 logger = get_logger(__name__)
 
@@ -27,16 +20,6 @@ logger = get_logger(__name__)
 def setup_environment():
     """Set up and validate the environment."""
     global _engine
-
-    # Get the project root directory
-    project_root = Path(__file__).parent.parent.parent.absolute()
-
-    # Verify pyproject.toml exists
-    pyproject_path = project_root / "pyproject.toml"
-    if not pyproject_path.exists():
-        logger.error("pyproject.toml not found at %s", pyproject_path)
-        msg = f"pyproject.toml not found at {pyproject_path}"
-        raise RuntimeError(msg)
 
     # Set up signal handlers for graceful shutdown
     setup_signal_handlers()
@@ -61,7 +44,7 @@ def setup_environment():
 
 
 # Initialize logging first
-setup_logging(settings)
+setup_logging(settings.LOG_LEVEL)  # Pass log level directly
 
 # Then set up the environment
 logger = setup_environment()
@@ -348,10 +331,7 @@ def main_cli():
         uvicorn_logger.info("Transport mode: %s", args.transport)
     except Exception as e:
         logger.warning("Unable to retrieve Stockfish engine path: %s", e)
-        print(
-            "\033[33mWARNING\033[0m: "
-            "Unable to retrieve Stockfish engine path: %s" % e
-        )
+        print("\033[33mWARNING\033[0m: " "Unable to retrieve Stockfish engine path: %s" % e)
 
     # Run the app instance using the selected transport
     app.run(transport=args.transport)
@@ -359,10 +339,11 @@ def main_cli():
 
 def main() -> None:
     """Start the MCP server with the configured settings."""
-    from dylangames_mcp_chess_engine.config import Settings
-
-    settings = Settings()  # type: ignore
-    setup_logging(settings)
+    # Settings are now loaded globally in config.py
+    # Logging is initialized globally before setup_environment
+    # Re-setup logging here in case settings changed via env vars after initial import?
+    # Or rely on initial setup? Let's rely on initial setup for now.
+    # setup_logging(settings.LOG_LEVEL) # Pass log level directly
     logger.info(
         "Starting MCP server on port %d with log level %s",
         settings.MCP_PORT,

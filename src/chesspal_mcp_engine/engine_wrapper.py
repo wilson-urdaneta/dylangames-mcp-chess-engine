@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List
 
 # Add import for EngineRegistry
-from dylangames_mcp_chess_engine.shutdown import EngineRegistry
+from chesspal_mcp_engine.shutdown import EngineRegistry
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -33,8 +33,7 @@ def _get_engine_path() -> Path:
             logger.info(f"Using engine binary from ENGINE_PATH: {path}")
             return path
         logger.warning(
-            f"ENGINE_PATH set but invalid: {path} "
-            "(file must exist and be executable)"
+            f"ENGINE_PATH set but invalid: {path} " "(file must exist and be executable)"
         )
         # Don't raise error yet, try system paths and fallback path
 
@@ -84,14 +83,9 @@ def _get_engine_path() -> Path:
 
     if not fallback_path.is_file():
         # If ENGINE_PATH was set but invalid, mention it in the error
-        error_msg = (
-            "Stockfish binary not found at fallback path: "
-            f"{fallback_path}\n"
-        )
+        error_msg = "Stockfish binary not found at fallback path: " f"{fallback_path}\n"
         if engine_path:
-            error_msg += (
-                f"Note: ENGINE_PATH was set ({engine_path}) but is invalid.\n"
-            )
+            error_msg += f"Note: ENGINE_PATH was set ({engine_path}) but is invalid.\n"
 
         error_msg += (
             "Please either:\n"
@@ -105,9 +99,7 @@ def _get_engine_path() -> Path:
     if not os.access(fallback_path, os.X_OK):
         raise EngineBinaryError(
             "Stockfish binary at {path} exists but is not executable.\n"
-            "Please ensure the file has proper execute permissions.".format(
-                path=fallback_path
-            )
+            "Please ensure the file has proper execute permissions.".format(path=fallback_path)
         )
 
     logger.info(f"Using engine binary from fallback path: {fallback_path}")
@@ -148,9 +140,7 @@ class StockfishEngine:
         except BrokenPipeError as e:
             raise StockfishError(f"Failed to send command: {e}")
 
-    def _read_response(
-        self, until: str | None = None, timeout: float = 2.0
-    ) -> List[str]:
+    def _read_response(self, until: str | None = None, timeout: float = 2.0) -> List[str]:
         """Read response from the Stockfish engine.
 
         Args:
@@ -173,9 +163,7 @@ class StockfishEngine:
                     # haven't found it, return what we have so far
                     if until and responses:
                         return responses
-                    raise StockfishError(
-                        "Timeout waiting for response " f"(waited {timeout}s)"
-                    )
+                    raise StockfishError("Timeout waiting for response " f"(waited {timeout}s)")
 
                 if select.select([self.process.stdout], [], [], 0.1)[0]:
                     line = self.process.stdout.readline()
@@ -186,9 +174,7 @@ class StockfishEngine:
                         if until and line.startswith(until):
                             break
                 elif self.process.poll() is not None:
-                    raise StockfishError(
-                        "Engine process terminated unexpectedly"
-                    )
+                    raise StockfishError("Engine process terminated unexpectedly")
 
         except Exception as e:
             raise StockfishError(f"Error reading engine response: {e}")
@@ -226,9 +212,7 @@ class StockfishEngine:
             self._send_command("isready")
             responses = self._read_response(until="readyok", timeout=5.0)
             if not any(r.startswith("readyok") for r in responses):
-                raise StockfishError(
-                    "Engine not responding to isready command"
-                )
+                raise StockfishError("Engine not responding to isready command")
 
             logger.info("Engine initialized successfully")
 
@@ -236,9 +220,7 @@ class StockfishEngine:
             self.stop()
             raise StockfishError(f"Failed to initialize engine: {e}")
 
-    def get_best_move(
-        self, fen: str, move_history: List[str] | None = None
-    ) -> str:
+    def get_best_move(self, fen: str, move_history: List[str] | None = None) -> str:
         """Get the best move for a given position."""
         if not self.process or self.process.poll() is not None:
             raise StockfishError("Engine not initialized or not running")
@@ -259,9 +241,7 @@ class StockfishEngine:
             self._send_command("go movetime 3000")
             logger.debug("Waiting for bestmove response with 30s timeout...")
             responses = self._read_response(until="bestmove", timeout=30.0)
-            logger.debug(
-                f"Received {len(responses)} response lines from engine"
-            )
+            logger.debug(f"Received {len(responses)} response lines from engine")
 
             # Parse response
             for response in responses:
@@ -270,9 +250,7 @@ class StockfishEngine:
                     logger.info(f"Best move found: {best_move}")
                     return best_move
 
-            logger.error(
-                f"No 'bestmove' line found in engine responses: {responses}"
-            )
+            logger.error(f"No 'bestmove' line found in engine responses: {responses}")
             raise StockfishError("No best move found in engine response")
 
         except Exception as e:

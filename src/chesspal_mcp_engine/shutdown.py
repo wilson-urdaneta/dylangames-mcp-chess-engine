@@ -60,9 +60,7 @@ class EngineRegistry(Generic[T]):
                 logger.debug(f"Stopping engine instance: {id(engine)}")
                 engine.stop()
             except Exception as e:
-                logger.error(
-                    f"Error stopping engine instance {id(engine)}: {e}"
-                )
+                logger.error(f"Error stopping engine instance {id(engine)}: {e}")
 
 
 def graceful_shutdown(signum, frame) -> None:

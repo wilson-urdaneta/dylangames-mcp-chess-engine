@@ -17,9 +17,7 @@ class GameStatusResponse(BaseModel):
 
     status: str  # "CHECKMATE", "DRAW", "IN_PROGRESS"
     winner: Optional[str] = None  # "WHITE", "BLACK", or None
-    draw_reason: Optional[str] = (
-        None  # "STALEMATE", "INSUFFICIENT_MATERIAL", etc.
-    )
+    draw_reason: Optional[str] = None  # "STALEMATE", "INSUFFICIENT_MATERIAL", etc.
 
 
 class BestMoveResponse(BaseModel):

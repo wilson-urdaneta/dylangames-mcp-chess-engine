@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from dylangames_mcp_chess_engine.engine_wrapper import (
+from chesspal_mcp_engine.engine_wrapper import (
     EngineBinaryError,
     StockfishEngine,
     StockfishError,
@@ -98,9 +98,7 @@ def mock_engine(monkeypatch):
 
     def mock_select(rlist, wlist, xlist, timeout=None):
         stdout = rlist[0]
-        if isinstance(stdout, MockPipe) and stdout.current < len(
-            stdout.responses
-        ):
+        if isinstance(stdout, MockPipe) and stdout.current < len(stdout.responses):
             return [stdout], [], []
         return [], [], []
 
@@ -111,9 +109,7 @@ def mock_engine(monkeypatch):
 
 def test_initialize_engine(mock_engine):
     """Test engine initialization with mocked subprocess."""
-    with patch(
-        "dylangames_mcp_chess_engine.engine_wrapper._get_engine_path"
-    ) as mock_get_path:
+    with patch("chesspal_mcp_engine.engine_wrapper._get_engine_path") as mock_get_path:
         mock_get_path.return_value = Path("/mock/stockfish")
         engine = StockfishEngine()
         assert engine.process is not None
@@ -121,9 +117,7 @@ def test_initialize_engine(mock_engine):
 
 def test_get_best_move_success(mock_engine):
     """Test getting best move with mocked engine responses."""
-    with patch(
-        "dylangames_mcp_chess_engine.engine_wrapper._get_engine_path"
-    ) as mock_get_path:
+    with patch("chesspal_mcp_engine.engine_wrapper._get_engine_path") as mock_get_path:
         mock_get_path.return_value = Path("/mock/stockfish")
         mock_engine.stdout.responses.extend(
             [
@@ -140,17 +134,12 @@ def test_get_best_move_success(mock_engine):
         expected_cmd = f"position fen {fen}\n".encode()
         assert any(cmd == expected_cmd for cmd in mock_engine.stdin.commands)
         # Verify go command was sent
-        assert any(
-            cmd.startswith(b"go movetime")
-            for cmd in mock_engine.stdin.commands
-        )
+        assert any(cmd.startswith(b"go movetime") for cmd in mock_engine.stdin.commands)
 
 
 def test_get_best_move_with_history(mock_engine):
     """Test getting best move with move history."""
-    with patch(
-        "dylangames_mcp_chess_engine.engine_wrapper._get_engine_path"
-    ) as mock_get_path:
+    with patch("chesspal_mcp_engine.engine_wrapper._get_engine_path") as mock_get_path:
         mock_get_path.return_value = Path("/mock/stockfish")
         mock_engine.stdout.responses.extend(
             [
@@ -166,16 +155,12 @@ def test_get_best_move_with_history(mock_engine):
         assert best_move == "e7e5"
         # Verify the position command includes move history
         expected_pos_cmd = (f"position fen {fen} moves e2e4\n").encode()
-        assert any(
-            cmd == expected_pos_cmd for cmd in mock_engine.stdin.commands
-        )
+        assert any(cmd == expected_pos_cmd for cmd in mock_engine.stdin.commands)
 
 
 def test_get_best_move_engine_error(mock_engine):
     """Test error handling when engine fails to respond properly."""
-    with patch(
-        "dylangames_mcp_chess_engine.engine_wrapper._get_engine_path"
-    ) as mock_get_path:
+    with patch("chesspal_mcp_engine.engine_wrapper._get_engine_path") as mock_get_path:
         mock_get_path.return_value = Path("/mock/stockfish")
         # Initialize with UCI responses
         mock_engine.stdout.responses = [
@@ -194,17 +179,13 @@ def test_get_best_move_engine_error(mock_engine):
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         with pytest.raises(StockfishError) as exc_info:
             engine.get_best_move(fen)
-        error_msg = (
-            "Error getting best move: No best move found in engine response"
-        )
+        error_msg = "Error getting best move: No best move found in engine response"
         assert error_msg in str(exc_info.value)
 
 
 def test_stop_engine(mock_engine):
     """Test engine shutdown."""
-    with patch(
-        "dylangames_mcp_chess_engine.engine_wrapper._get_engine_path"
-    ) as mock_get_path:
+    with patch("chesspal_mcp_engine.engine_wrapper._get_engine_path") as mock_get_path:
         mock_get_path.return_value = Path("/mock/stockfish")
         engine = StockfishEngine()
         engine.stop()

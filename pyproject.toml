@@ -1,17 +1,17 @@
 [tool.poetry]
-name = "chesspal-mcp-engine"
-version = "0.2.0"
-description = "A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project."
-authors = ["Wilson Urdaneta <wilson.urdaneta@gmail.com>"]
+name = "chesspal-mcp-engine" # Standardized name
+version = "0.2.0" # Keep version for now
+description = "ChessPal MCP Engine: A Stockfish-powered chess engine exposed via MCP." # Standardized description
+authors = ["Your Name <your.email@example.com>"] # Standardized author (placeholder)
 readme = "README.md"
 packages = [
-    { include = "dylangames_mcp_chess_engine", from = "src" }
+    { include = "chesspal_mcp_engine", from = "src" } # Standardized package include
 ]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine"
-keywords = ["chess", "stockfish", "mcp", "chesspal"]
+repository = "https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine" # Keep original repo for now
+keywords = ["chess", "stockfish", "mcp", "chesspal"] # Updated keywords
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 4 - Beta", # Keep classifiers
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
@@ -20,39 +20,47 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "^0.109.2"
-mcp = {version = "^1.2.0", extras = ["cli"]}
-python-chess = "^1.999"
-setuptools = "^69.2.0"
-uvicorn = {extras = ["standard"], version = "^0.34.0"}
-pydantic-settings = "^2.8.1"
+python = ">=3.10,<4.0" # Aligned Python version
+fastapi = "^0.110.0" # Aligned fastapi version
+mcp = {version = "^1.6", extras = ["cli"]} # Aligned mcp version and extras
+python-chess = "^1.999" # Keep python-chess version
+setuptools = "^69.2.0" # Keep setuptools version (often needed for build)
+uvicorn = {extras = ["standard"], version = "^0.27.1"} # Aligned uvicorn version
+pydantic-settings = "^2.2.1" # Aligned pydantic-settings version
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.4.0"
-black = "^24.2.0"
-flake8 = "^7.0.0"
-flake8-docstrings = "^1.7.0"
-isort = "^5.13.2"
-pre-commit = "^3.6.2"
-httpx = "^0.28.1"
-pytest-asyncio = "^0.26.0"
+pytest = "^8.0.0" # Aligned pytest version
+pytest-cov = "^5.0.0" # Keep pytest-cov version
+black = "^24.2.0" # Keep black version
+flake8 = "^7.0.0" # Keep flake8 version
+# flake8-docstrings = "^1.7.0" # Removed to align with agent for now
+flake8-bugbear = "^24.2.0" # Keep flake8-bugbear version
+flake8-comprehensions = "^3.14.0" # Keep flake8-comprehensions version
+isort = "^5.13.2" # Keep isort version (agent uses ^5.13.0, close enough)
+mypy = "^1.15.0" # Keep mypy version
+pre-commit = "^4.2.0" # Aligned pre-commit version
+httpx = "^0.27.0" # Aligned httpx version
+pytest-asyncio = "^0.26.0" # Keep pytest-asyncio version (newer than agent)
+pytest-mock = "^3.14.0" # Added from agent
+pytest-httpx = "^0.30.0" # Added from agent
+# Ensure MCP dev dep matches agent
+mcp = {extras = ["cli"], version = "^1.6"} # Align MCP dev dep version
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-chesspal-mcp-engine = "dylangames_mcp_chess_engine.main:main"
+chesspal-mcp-engine = "chesspal_mcp_engine.main:main" # Standardized script name and entry point
 
 [tool.black]
-line-length = 79
+line-length = 100
 target-version = ['py310']
-include = '\.pyi?$'
+include = '\.pyi?$' # Keep include
 
 [tool.isort]
 profile = "black"
-line_length = 79
+line_length = 100 # Standardized line length
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
@@ -60,19 +68,71 @@ use_parentheses = true
 ensure_newline_before_comments = true
 
 [tool.flake8]
-max-line-length = 79
-extend-ignore = "E203"
-docstring-convention = "google"
-per-file-ignores = [
-    "__init__.py:F401",
-    "tests/*:D100,D101,D102,D103"
-]
-exclude = [".git", "__pycache__", "build", "dist"]
+max-line-length = 100 # Standardized line length
+extend-ignore = ["E203", "W503"] # Aligned with agent
+# docstring-convention = "google" # Removed to align with agent
+per-file-ignores = ["__init__.py:F401"] # Aligned with agent (removed test ignores for now)
+exclude = [".git", "__pycache__", "build", "dist", "*.egg-info"] # Aligned with agent
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto" # Aligned with agent
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py", "tests.py"]
-addopts = "-v"
+python_files = ["test_*.py", "*_test.py", "tests.py"] # Keep specific python_files pattern
+addopts = "-sv --cov=chesspal_mcp_engine --cov-report=term-missing" # Aligned addopts format
 markers = [
     "integration: marks tests as integration tests (require external dependencies like Stockfish binary)",
 ]
+
+# Standardized coverage configuration
+[tool.coverage.run]
+source = ["chesspal_mcp_engine"] # Updated source path
+branch = true
+omit = [ # Standardized omissions (based on agent, minus scripts)
+    "*/__main__.py",
+    "tests/*",
+    "src/chesspal_mcp_engine/logging_config.py",
+    "src/chesspal_mcp_engine/config.py",
+    "src/chesspal_mcp_engine/exceptions.py"
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 70 # Standardized fail_under to 70%
+skip_covered = false
+exclude_lines = [ # Standardized exclude lines
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod"
+]
+
+# Add unified MyPy configuration (same as agent, adjusted for engine specifics)
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+follow_imports = "silent"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+strict_optional = true
+# files = ["src/chesspal_mcp_engine"] # Explicitly target source directory
+
+[[tool.mypy.overrides]]
+module = [
+    "chess.*", # Keep engine specific
+    "fastapi.*", # Added common
+    "uvicorn.*", # Added common
+    "pydantic_settings.*", # Added common
+    "mcp.*", # Added common
+    "httpx.*", # Added common
+    "pytest.*", # Added for tests
+    "pytest_mock.*", # Added for tests
+    "pytest_httpx.*" # Added for tests
+]
+ignore_missing_imports = true

@@ -4,11 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from dylangames_mcp_chess_engine.engine_wrapper import (
-    StockfishEngine,
-    StockfishError,
-)
-from dylangames_mcp_chess_engine.main import (
+from chesspal_mcp_engine.engine_wrapper import StockfishEngine, StockfishError
+from chesspal_mcp_engine.main import (
     BoolResponse,
     ChessMoveRequest,
     ChessMoveResponse,
@@ -34,9 +31,7 @@ class MockEngine:
 @pytest.mark.asyncio
 async def test_validate_move_tool_valid_move(test_positions):
     """Test validation of a valid chess move."""
-    request = ValidateMoveRequest(
-        fen=test_positions["STARTING_FEN"], move="e2e4"
-    )
+    request = ValidateMoveRequest(fen=test_positions["STARTING_FEN"], move="e2e4")
     response = await validate_move_tool(request)
     assert response == BoolResponse(result=True).model_dump()
 
@@ -44,9 +39,7 @@ async def test_validate_move_tool_valid_move(test_positions):
 @pytest.mark.asyncio
 async def test_validate_move_tool_invalid_syntax(test_positions):
     """Test validation of a move with invalid syntax."""
-    request = ValidateMoveRequest(
-        fen=test_positions["STARTING_FEN"], move="e2e9"
-    )
+    request = ValidateMoveRequest(fen=test_positions["STARTING_FEN"], move="e2e9")
     response = await validate_move_tool(request)
     assert "error" in response
     assert "Invalid move format" in response["error"]
@@ -55,9 +48,7 @@ async def test_validate_move_tool_invalid_syntax(test_positions):
 @pytest.mark.asyncio
 async def test_validate_move_tool_illegal_move(test_positions):
     """Test validation of an illegal chess move."""
-    request = ValidateMoveRequest(
-        fen=test_positions["STARTING_FEN"], move="e1e2"
-    )
+    request = ValidateMoveRequest(fen=test_positions["STARTING_FEN"], move="e1e2")
     response = await validate_move_tool(request)
     assert response == BoolResponse(result=False).model_dump()
 
@@ -106,11 +97,7 @@ async def test_game_status_tool_in_progress(test_positions):
     """Test game status detection for an ongoing game."""
     request = PositionRequest(fen=test_positions["STARTING_FEN"])
     response = await get_game_status_tool(request)
-    expected = {
-        "result": GameStatusResponse(
-            status="IN_PROGRESS", winner=None
-        ).model_dump()
-    }
+    expected = {"result": GameStatusResponse(status="IN_PROGRESS", winner=None).model_dump()}
     assert response == expected
 
 
@@ -119,11 +106,7 @@ async def test_game_status_tool_checkmate(test_positions):
     """Test game status detection for a checkmate position."""
     request = PositionRequest(fen=test_positions["CHECKMATE_FEN"])
     response = await get_game_status_tool(request)
-    expected = {
-        "result": GameStatusResponse(
-            status="CHECKMATE", winner="BLACK"
-        ).model_dump()
-    }
+    expected = {"result": GameStatusResponse(status="CHECKMATE", winner="BLACK").model_dump()}
     assert response == expected
 
 
@@ -132,11 +115,7 @@ async def test_game_status_tool_stalemate(test_positions):
     """Test game status detection for a stalemate position."""
     request = PositionRequest(fen=test_positions["STALEMATE_FEN"])
     response = await get_game_status_tool(request)
-    expected = {
-        "result": GameStatusResponse(
-            status="STALEMATE", winner=None
-        ).model_dump()
-    }
+    expected = {"result": GameStatusResponse(status="STALEMATE", winner=None).model_dump()}
     assert response == expected
 
 
@@ -145,9 +124,7 @@ async def test_game_status_tool_insufficient_material(test_positions):
     """Test game status detection for insufficient material."""
     request = PositionRequest(fen=test_positions["INSUFFICIENT_MATERIAL_FEN"])
     response = await get_game_status_tool(request)
-    expected = {
-        "result": GameStatusResponse(status="DRAW", winner=None).model_dump()
-    }
+    expected = {"result": GameStatusResponse(status="DRAW", winner=None).model_dump()}
     assert response == expected
 
 
@@ -166,18 +143,12 @@ async def test_get_best_move_tool_success(test_positions):
     mock_engine = MagicMock(spec=StockfishEngine)
     mock_engine.get_best_move.return_value = "e2e4"
 
-    with patch("dylangames_mcp_chess_engine.main._engine", mock_engine):
-        request = ChessMoveRequest(
-            fen=test_positions["STARTING_FEN"], move_history=[]
-        )
+    with patch("chesspal_mcp_engine.main._engine", mock_engine):
+        request = ChessMoveRequest(fen=test_positions["STARTING_FEN"], move_history=[])
         response = await get_best_move_tool(request)
-        expected = {
-            "result": ChessMoveResponse(best_move_uci="e2e4").model_dump()
-        }
+        expected = {"result": ChessMoveResponse(best_move_uci="e2e4").model_dump()}
         assert response == expected
-        mock_engine.get_best_move.assert_called_once_with(
-            test_positions["STARTING_FEN"], []
-        )
+        mock_engine.get_best_move.assert_called_once_with(test_positions["STARTING_FEN"], [])
 
 
 @pytest.mark.asyncio
@@ -186,10 +157,8 @@ async def test_get_best_move_tool_engine_error(test_positions):
     mock_engine = MagicMock(spec=StockfishEngine)
     mock_engine.get_best_move.side_effect = StockfishError("Engine failed")
 
-    with patch("dylangames_mcp_chess_engine.main._engine", mock_engine):
-        request = ChessMoveRequest(
-            fen=test_positions["STARTING_FEN"], move_history=[]
-        )
+    with patch("chesspal_mcp_engine.main._engine", mock_engine):
+        request = ChessMoveRequest(fen=test_positions["STARTING_FEN"], move_history=[])
         response = await get_best_move_tool(request)
         assert "error" in response
         assert "Engine failed" in response["error"]
@@ -198,7 +167,7 @@ async def test_get_best_move_tool_engine_error(test_positions):
 @pytest.mark.asyncio
 async def test_get_best_move_tool_not_initialized():
     """Test the get_best_move_tool function when engine is not initialized."""
-    with patch("dylangames_mcp_chess_engine.main._engine", None):
+    with patch("chesspal_mcp_engine.main._engine", None):
         request = ChessMoveRequest(
             fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             move_history=[],
@@ -214,10 +183,8 @@ async def test_get_best_move_tool_unexpected_error(test_positions):
     mock_engine = MagicMock(spec=StockfishEngine)
     mock_engine.get_best_move.side_effect = RuntimeError("Unexpected error")
 
-    with patch("dylangames_mcp_chess_engine.main._engine", mock_engine):
-        request = ChessMoveRequest(
-            fen=test_positions["STARTING_FEN"], move_history=[]
-        )
+    with patch("chesspal_mcp_engine.main._engine", mock_engine):
+        request = ChessMoveRequest(fen=test_positions["STARTING_FEN"], move_history=[])
         response = await get_best_move_tool(request)
         assert "error" in response
         assert response["error"] == "Internal server error"

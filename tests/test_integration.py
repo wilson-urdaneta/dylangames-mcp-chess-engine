@@ -88,7 +88,7 @@ async def run_server():
     """Start the MCP server as a subprocess."""
     # Start the server
     server_process = subprocess.Popen(
-        [sys.executable, "-m", "dylangames_mcp_chess_engine.main"],
+        [sys.executable, "-m", "chesspal_mcp_engine.main"],
         env=os.environ.copy(),
     )
 
@@ -139,9 +139,7 @@ async def test_http_get_best_move(run_server: None) -> None:
     arguments = {"request": {"fen": fen, "move_history": []}}
 
     try:
-        endpoint_msg = (
-            f"Attempting to connect to SSE endpoint: {sse_endpoint_url}"
-        )
+        endpoint_msg = f"Attempting to connect to SSE endpoint: {sse_endpoint_url}"
         logger.info(endpoint_msg)
         async with sse_client(sse_endpoint_url, timeout=15.0) as streams:
             logger.info("SSE client connected.")
@@ -168,10 +166,7 @@ async def test_http_get_best_move(run_server: None) -> None:
                 try:
                     result_data = json.loads(content.text)
                 except json.JSONDecodeError as e:
-                    msg = (
-                        f"Invalid JSON response: {e} - "
-                        f"Response text: {content.text}"
-                    )
+                    msg = f"Invalid JSON response: {e} - " f"Response text: {content.text}"
                     pytest.fail(msg)
 
                 # Check for application error returned in payload
@@ -180,18 +175,13 @@ async def test_http_get_best_move(run_server: None) -> None:
                     logger.error(error_msg)
                     # Check if the error is related to the Stockfish binary
                     if "No best move found" in result_data["error"]:
-                        pytest.skip(
-                            f"Stockfish engine issue: {result_data['error']}"
-                        )
+                        pytest.skip(f"Stockfish engine issue: {result_data['error']}")
                     else:
                         pytest.fail(error_msg)
 
                 # Check for success result
                 if "result" not in result_data:
-                    msg = (
-                        "Response missing 'result' field. "
-                        f"Response: {result_data}"
-                    )
+                    msg = "Response missing 'result' field. " f"Response: {result_data}"
                     pytest.fail(msg)
 
                 final_result = result_data["result"]
@@ -199,9 +189,7 @@ async def test_http_get_best_move(run_server: None) -> None:
                 assert isinstance(final_result["best_move_uci"], str)
                 # UCI format check
                 assert len(final_result["best_move_uci"]) >= 4
-                logger.info(
-                    f"Best move verified: {final_result['best_move_uci']}"
-                )
+                logger.info(f"Best move verified: {final_result['best_move_uci']}")
 
     except Exception as e:
         error_msg = f"Error during integration test: {type(e).__name__}: {e}"

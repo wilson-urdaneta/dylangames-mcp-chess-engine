@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 # Import will fail until we create the module
-from dylangames_mcp_chess_engine.config import Settings
+from chesspal_mcp_engine.config import Settings
 
 
 def test_default_settings():
@@ -18,13 +18,13 @@ def test_default_settings():
             del os.environ[key]
 
     # Create settings object
-    settings = Settings()
+    settings = Settings()  # No longer needs type ignore
 
     # Check default values
     assert settings.MCP_HOST == "127.0.0.1"
     assert settings.MCP_PORT == 9000
-    assert settings.ENGINE_PATH is None
-    assert settings.LOG_LEVEL in ["DEBUG", "INFO"]
+    assert settings.CHESSPAL_ENGINE_PATH is None  # Updated var name
+    assert settings.LOG_LEVEL in ["DEBUG", "INFO"]  # Default depends on ENVIRONMENT
 
 
 def test_custom_settings_from_env():
@@ -32,16 +32,16 @@ def test_custom_settings_from_env():
     # Set environment variables
     os.environ["MCP_HOST"] = "0.0.0.0"
     os.environ["MCP_PORT"] = "8080"
-    os.environ["ENGINE_PATH"] = "/path/to/engine"
+    os.environ["CHESSPAL_ENGINE_PATH"] = "/path/to/engine"  # Updated env var name
     os.environ["LOG_LEVEL"] = "DEBUG"
 
     # Create settings object
-    settings = Settings()
+    settings = Settings()  # No longer needs type ignore
 
     # Check custom values
     assert settings.MCP_HOST == "0.0.0.0"
     assert settings.MCP_PORT == 8080
-    assert settings.ENGINE_PATH == "/path/to/engine"
+    assert settings.CHESSPAL_ENGINE_PATH == "/path/to/engine"  # Updated var name
     assert settings.LOG_LEVEL == "DEBUG"
 
 
@@ -51,16 +51,15 @@ def test_invalid_port():
         patch.dict(os.environ, {"MCP_PORT": "invalid"}, clear=True),
         pytest.raises(ValidationError),
     ):
-        Settings(_env_file=None)  # Explicitly disable .env file loading
+        Settings()  # No longer needs type ignore
 
 
 def test_invalid_log_level():
-    """Test that an invalid log level raises a ValidationError."""
-    with (
-        patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True),
-        pytest.raises(ValidationError),
-    ):
-        Settings(_env_file=None)  # Explicitly disable .env file loading
+    """Test that an invalid log level defaults to INFO after logging a warning."""
+    # The validator now defaults to INFO instead of raising ValidationError
+    with patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True):
+        settings = Settings()  # No longer needs type ignore
+        assert settings.LOG_LEVEL == "INFO"
 
 
 def test_partial_override():
@@ -73,10 +72,10 @@ def test_partial_override():
             del os.environ[key]
 
     # Create settings object
-    settings = Settings()
+    settings = Settings()  # No longer needs type ignore
 
     # Check mixed values (custom and default)
     assert settings.MCP_HOST == "127.0.0.1"  # Default
     assert settings.MCP_PORT == 8888  # Custom
-    assert settings.ENGINE_PATH is None  # Default
-    assert settings.LOG_LEVEL in ["DEBUG", "INFO"]
+    assert settings.CHESSPAL_ENGINE_PATH is None  # Updated var name
+    assert settings.LOG_LEVEL in ["DEBUG", "INFO"]  # Default depends on ENVIRONMENT
