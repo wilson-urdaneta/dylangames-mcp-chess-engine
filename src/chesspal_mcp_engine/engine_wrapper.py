@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 from typing import List
 
+from chesspal_mcp_engine.config import settings
+
 # Add import for EngineRegistry
 from chesspal_mcp_engine.shutdown import EngineRegistry
 
@@ -25,14 +27,15 @@ def _get_engine_path() -> Path:
     Raises:
         EngineBinaryError: If the binary cannot be found or accessed
     """
-    # First try ENGINE_PATH environment variable
-    engine_path = os.environ.get("ENGINE_PATH")
+    # First try CHESSPAL_ENGINE_PATH from settings
+    engine_path = settings.CHESSPAL_ENGINE_PATH
+
     if engine_path:
         path = Path(engine_path)
         if path.is_file() and os.access(path, os.X_OK):
-            logger.info(f"Using engine binary from ENGINE_PATH: {path}")
+            logger.info(f"Using engine binary from CHESSPAL_ENGINE_PATH: {path}")
             return path
-        logger.warning(f"ENGINE_PATH set but invalid: {path} " "(file must exist and be executable)")
+        logger.warning(f"CHESSPAL_ENGINE_PATH set but invalid: {path} " "(file must exist and be executable)")
         # Don't raise error yet, try system paths and fallback path
 
     # Next, try common system paths for stockfish
@@ -51,8 +54,8 @@ def _get_engine_path() -> Path:
     # Fallback to constructed path
     logger.info("System paths not valid, attempting fallback path")
 
-    # Get OS - either from ENV or detect
-    engine_os = os.environ.get("ENGINE_OS")
+    # Get OS - either from settings or detect
+    engine_os = settings.CHESSPAL_ENGINE_OS
     if not engine_os:
         system = platform.system().lower()
         if system == "darwin":
@@ -63,36 +66,39 @@ def _get_engine_path() -> Path:
             engine_os = "windows"
         else:
             raise EngineBinaryError(f"Unsupported platform: {system}")
-        logger.info(f"No ENGINE_OS set, detected OS as: {engine_os}")
+        logger.info(f"No CHESSPAL_ENGINE_OS set, detected OS as: {engine_os}")
 
     # Construct fallback path
-    engine_name = os.environ.get("ENGINE_NAME", "stockfish")
-    engine_version = os.environ.get("ENGINE_VERSION", "17.1")
+    engine_name = settings.CHESSPAL_ENGINE_NAME
+    engine_version = settings.CHESSPAL_ENGINE_VERSION
     binary_name = "stockfish.exe" if engine_os == "windows" else "stockfish"
+
+    # OS-specific path portion for error messages
+    os_path_portion = f"{engine_os}/{binary_name}"
 
     fallback_path = (
         Path(__file__).parent.parent.parent / "engines" / engine_name / engine_version / engine_os / binary_name
     ).resolve()
 
     if not fallback_path.is_file():
-        # If ENGINE_PATH was set but invalid, mention it in the error
-        error_msg = "Stockfish binary not found at fallback path: " f"{fallback_path}\n"
+        # If CHESSPAL_ENGINE_PATH was set but invalid, mention it in the error
+        error_msg = f"Stockfish binary not found at fallback path: {fallback_path}\n"
         if engine_path:
-            error_msg += f"Note: ENGINE_PATH was set ({engine_path}) but is invalid.\n"
+            error_msg += f"Note: CHESSPAL_ENGINE_PATH was set ({engine_path}) but is invalid.\n"
 
         error_msg += (
-            "Please either:\n"
-            "1. Set ENGINE_PATH to point to your Stockfish binary, or\n"
-            "2. Download the appropriate binary from "
-            "https://github.com/official-stockfish/Stockfish/releases\n"
-            f"   and place it at {fallback_path}"
+            f"Please either:\n"
+            f"1. Set CHESSPAL_ENGINE_PATH to point to your Stockfish binary, or\n"
+            f"2. Download the appropriate binary from "
+            f"https://github.com/official-stockfish/Stockfish/releases\n"
+            f"   and place it at engines/{engine_name}/{engine_version}/{os_path_portion}"
         )
         raise EngineBinaryError(error_msg)
 
     if not os.access(fallback_path, os.X_OK):
         raise EngineBinaryError(
-            "Stockfish binary at {path} exists but is not executable.\n"
-            "Please ensure the file has proper execute permissions.".format(path=fallback_path)
+            f"Stockfish binary at {fallback_path} exists but is not executable.\n"
+            f"Please ensure the file has proper execute permissions."
         )
 
     logger.info(f"Using engine binary from fallback path: {fallback_path}")

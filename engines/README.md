@@ -68,10 +68,10 @@ engines/
 
 ### Environment Variables
 
-If not using `ENGINE_PATH`, set:
+If not using `CHESSPAL_ENGINE_PATH`, set:
 ```bash
-export ENGINE_OS=linux    # or macos, windows
-export ENGINE_VERSION=17.1  # optional, defaults to 17.1
+export CHESSPAL_ENGINE_OS=linux    # or macos, windows
+export CHESSPAL_ENGINE_VERSION=17.1  # optional, defaults to 17.1
 ```
 
 ## Troubleshooting
@@ -79,7 +79,7 @@ export ENGINE_VERSION=17.1  # optional, defaults to 17.1
 1. **Binary Not Found**:
    - Verify correct directory structure
    - Check file name matches convention
-   - Ensure `ENGINE_OS` matches your system
+   - Ensure `CHESSPAL_ENGINE_OS` matches your system
 
 2. **Permission Denied**:
    - Check file permissions (`ls -l`)
@@ -87,7 +87,7 @@ export ENGINE_VERSION=17.1  # optional, defaults to 17.1
    - Verify binary matches system architecture
 
 3. **Version Mismatch**:
-   - Check `ENGINE_VERSION` environment variable
+   - Check `CHESSPAL_ENGINE_VERSION` environment variable
    - Verify binary version in correct directory
 
 4. **Integration Test Failures**:

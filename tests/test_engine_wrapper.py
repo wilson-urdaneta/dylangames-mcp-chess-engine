@@ -5,7 +5,7 @@ import platform
 import select
 import subprocess
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -222,9 +222,18 @@ def test_get_engine_path_error():
         # Ensure all path checks fail so we hit the platform check
         patch("pathlib.Path.is_file", return_value=False),
         patch("os.access", return_value=False),
+        # Mock the settings to avoid potential side effects
+        patch(
+            "chesspal_mcp_engine.engine_wrapper.settings",
+            MagicMock(
+                CHESSPAL_ENGINE_PATH=None,
+                CHESSPAL_ENGINE_NAME="stockfish",
+                CHESSPAL_ENGINE_VERSION="17.1",
+                CHESSPAL_ENGINE_OS=None,
+            ),
+        ),
     ):
-        error_msg = "Unsupported platform: unsupported"
-        with pytest.raises(EngineBinaryError, match=error_msg):
+        with pytest.raises(EngineBinaryError, match="Unsupported platform: unsupported"):
             _get_engine_path()
 
 
@@ -232,21 +241,31 @@ class TestEnginePath:
     """Tests for engine path resolution."""
 
     def test_engine_path_env_valid(self, tmp_path):
-        """Test that ENGINE_PATH is used when set and valid."""
+        """Test that CHESSPAL_ENGINE_PATH is used when set and valid."""
         mock_binary = tmp_path / "stockfish"
         mock_binary.touch()
         mock_binary.chmod(0o755)  # Make executable
 
-        with patch.dict(os.environ, {"ENGINE_PATH": str(mock_binary)}):
+        # Mock the settings object correctly
+        with patch("chesspal_mcp_engine.engine_wrapper.settings", MagicMock(CHESSPAL_ENGINE_PATH=str(mock_binary))):
             path = _get_engine_path()
             assert path == mock_binary
 
     def test_engine_path_env_invalid(self, tmp_path):
-        """Test that invalid ENGINE_PATH falls back to system paths."""
+        """Test that invalid CHESSPAL_ENGINE_PATH falls back to system paths."""
         invalid_path = tmp_path / "nonexistent"
 
         with (
-            patch.dict(os.environ, {"ENGINE_PATH": str(invalid_path)}),
+            # Mock settings with an invalid path
+            patch(
+                "chesspal_mcp_engine.engine_wrapper.settings",
+                MagicMock(
+                    CHESSPAL_ENGINE_PATH=str(invalid_path),
+                    CHESSPAL_ENGINE_NAME="stockfish",
+                    CHESSPAL_ENGINE_VERSION="17.1",
+                    CHESSPAL_ENGINE_OS="linux",
+                ),
+            ),
             # Make system paths not exist
             patch("pathlib.Path.is_file", return_value=False),
             patch("os.access", return_value=False),
@@ -256,13 +275,22 @@ class TestEnginePath:
                 _get_engine_path()
 
     def test_engine_path_env_not_executable(self, tmp_path):
-        """Test that non-executable ENGINE_PATH falls back to system paths."""
+        """Test that non-executable CHESSPAL_ENGINE_PATH falls back to system paths."""
         mock_binary = tmp_path / "stockfish"
         mock_binary.touch()
         mock_binary.chmod(0o644)  # Not executable
 
         with (
-            patch.dict(os.environ, {"ENGINE_PATH": str(mock_binary)}),
+            # Mock settings with a non-executable path
+            patch(
+                "chesspal_mcp_engine.engine_wrapper.settings",
+                MagicMock(
+                    CHESSPAL_ENGINE_PATH=str(mock_binary),
+                    CHESSPAL_ENGINE_NAME="stockfish",
+                    CHESSPAL_ENGINE_VERSION="17.1",
+                    CHESSPAL_ENGINE_OS="linux",
+                ),
+            ),
             # Make system paths not exist
             patch("pathlib.Path.is_file", return_value=False),
             patch("os.access", return_value=False),
@@ -272,11 +300,20 @@ class TestEnginePath:
                 _get_engine_path()
 
     def test_fallback_path_with_engine_os(self, tmp_path):
-        """Test fallback path construction with ENGINE_OS set."""
+        """Test fallback path construction with CHESSPAL_ENGINE_OS set."""
         # Instead of using mocks that are failing, let's just check
         # the specific error message format from the fallback path
         with (
-            patch.dict(os.environ, {"ENGINE_OS": "linux"}, clear=True),
+            # Mock settings with correct OS
+            patch(
+                "chesspal_mcp_engine.engine_wrapper.settings",
+                MagicMock(
+                    CHESSPAL_ENGINE_PATH=None,
+                    CHESSPAL_ENGINE_NAME="stockfish",
+                    CHESSPAL_ENGINE_VERSION="17.1",
+                    CHESSPAL_ENGINE_OS="linux",
+                ),
+            ),
             # Make all paths fail the is_file check
             patch("pathlib.Path.is_file", return_value=False),
         ):
@@ -287,11 +324,20 @@ class TestEnginePath:
             assert "linux/stockfish" in str(excinfo.value)
 
     def test_fallback_path_os_detection(self, tmp_path):
-        """Test OS detection when ENGINE_OS is not set."""
+        """Test OS detection when CHESSPAL_ENGINE_OS is not set."""
         # Instead of mocking Path.resolve which is causing issues,
         # just verify that OS detection works correctly
         with (
-            patch.dict(os.environ, {}, clear=True),
+            # Mock settings with no OS
+            patch(
+                "chesspal_mcp_engine.engine_wrapper.settings",
+                MagicMock(
+                    CHESSPAL_ENGINE_PATH=None,
+                    CHESSPAL_ENGINE_NAME="stockfish",
+                    CHESSPAL_ENGINE_VERSION="17.1",
+                    CHESSPAL_ENGINE_OS=None,
+                ),
+            ),
             # Make all paths fail the is_file check to force error
             patch("pathlib.Path.is_file", return_value=False),
             patch("platform.system", return_value="Darwin"),
@@ -307,8 +353,8 @@ class TestEnginePath:
         # This test just verifies that the function tries system paths
         # by mocking the function to make it think a system path exists
         with (
-            # Clear all environment variables
-            patch.dict(os.environ, {}, clear=True),
+            # Mock settings with no path
+            patch("chesspal_mcp_engine.engine_wrapper.settings", MagicMock(CHESSPAL_ENGINE_PATH=None)),
             # Make system path test return True only for '/usr/games/stockfish'
             patch(
                 "pathlib.Path.is_file",
@@ -322,8 +368,16 @@ class TestEnginePath:
     def test_fallback_path_not_found(self):
         """Test handling when the fallback binary doesn't exist."""
         with (
-            # Clear environment variables except ENGINE_OS
-            patch.dict(os.environ, {"ENGINE_OS": "linux"}, clear=True),
+            # Mock settings
+            patch(
+                "chesspal_mcp_engine.engine_wrapper.settings",
+                MagicMock(
+                    CHESSPAL_ENGINE_PATH=None,
+                    CHESSPAL_ENGINE_NAME="stockfish",
+                    CHESSPAL_ENGINE_VERSION="17.1",
+                    CHESSPAL_ENGINE_OS="linux",
+                ),
+            ),
             # All paths should fail is_file check
             patch("pathlib.Path.is_file", return_value=False),
         ):
@@ -335,11 +389,19 @@ class TestEnginePath:
         """Test error on unsupported platform."""
         with (
             patch("platform.system", return_value="unsupported"),
-            patch.dict(os.environ, {}, clear=True),
+            # Mock settings
+            patch(
+                "chesspal_mcp_engine.engine_wrapper.settings",
+                MagicMock(
+                    CHESSPAL_ENGINE_PATH=None,
+                    CHESSPAL_ENGINE_NAME="stockfish",
+                    CHESSPAL_ENGINE_VERSION="17.1",
+                    CHESSPAL_ENGINE_OS=None,
+                ),
+            ),
             # Ensure all path checks fail so we hit the platform check
             patch("pathlib.Path.is_file", return_value=False),
             patch("os.access", return_value=False),
         ):
-            error_msg = "Unsupported platform: unsupported"
-            with pytest.raises(EngineBinaryError, match=error_msg):
+            with pytest.raises(EngineBinaryError, match="Unsupported platform: unsupported"):
                 _get_engine_path()

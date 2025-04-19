@@ -11,6 +11,9 @@ from .logging_config import get_logger  # Assuming logger is needed for validati
 
 logger = get_logger(__name__)
 
+# Debug message to show when config is loaded
+print("DEBUG: config.py loaded with platform:", platform.system())
+
 
 class Environment(str, Enum):
     """Application environment enum."""

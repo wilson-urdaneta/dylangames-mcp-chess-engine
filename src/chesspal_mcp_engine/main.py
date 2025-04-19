@@ -2,8 +2,6 @@
 
 import argparse
 from contextlib import asynccontextmanager
-
-# from pathlib import Path # Removed unused import
 from typing import AsyncIterator, List, Optional
 
 import chess
@@ -32,11 +30,7 @@ def setup_environment():
     try:
         _engine = StockfishEngine()
         logger.info("Engine initialization successful")
-        try:
-            stockfish_path = _get_engine_path()
-            logger.info("Stockfish engine binary location: %s", stockfish_path)
-        except Exception as e:
-            logger.warning("Unable to retrieve Stockfish engine path: %s", e)
+        # No need to retrieve path again as it's already logged during engine initialization
     except StockfishError as e:
         logger.error("Engine initialization failed: %s", e)
         # Depending on desired behavior, might want to exit or raise here
@@ -116,32 +110,9 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
         if not _engine:
             _engine = StockfishEngine()
             logger.info("Engine initialized successfully (via MCP lifespan)")
-            # Log the exact path of the Stockfish binary being used
-            try:
-                stockfish_path = _get_engine_path()
-                logger.info(
-                    "Stockfish engine binary location: %s",
-                    stockfish_path,
-                )
-            except Exception as e:
-                logger.warning(
-                    "Unable to retrieve Stockfish engine path: %s",
-                    e,
-                )
+            # Engine path is already logged during engine initialization
         else:
             logger.info("Reusing existing engine instance")
-            # Still try to log the path for the existing instance
-            try:
-                stockfish_path = _get_engine_path()
-                logger.info(
-                    "Stockfish engine binary location: %s",
-                    stockfish_path,
-                )
-            except Exception as e:
-                logger.warning(
-                    "Unable to retrieve Stockfish engine path: %s",
-                    e,
-                )
         yield
     finally:
         logger.info("Stopping engine (via MCP lifespan)...")

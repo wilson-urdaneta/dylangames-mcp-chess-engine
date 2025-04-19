@@ -17,6 +17,9 @@ def setup_test_env():
             "MCP_HOST": "127.0.0.1",
             "MCP_PORT": "9000",
             "LOG_LEVEL": "DEBUG",
+            "CHESSPAL_ENGINE_NAME": "stockfish",
+            "CHESSPAL_ENGINE_VERSION": "17.1",
+            "CHESSPAL_ENGINE_OS": "macos",  # Use macos for tests on macOS
         }
     )
     yield
