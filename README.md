@@ -6,6 +6,7 @@
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI/CD](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/wilson-urdaneta/dylangames-mcp-chess-engine/actions)
+[![codecov](https://codecov.io/gh/your-github-username/dylangames-mcp-chess-engine/graph/badge.svg)](https://codecov.io/gh/your-github-username/dylangames-mcp-chess-engine)
 
 A Stockfish-powered chess engine exposed as an MCP server using FastMCP. Calculates best moves via MCP tools accessible over SSE (default) or stdio transports using an MCP client library. Part of the ChessPal project.
 
