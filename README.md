@@ -49,30 +49,30 @@ poetry install
 ```
 
 3. Configure the engine binary:
-   - Option 1: Set `ENGINE_PATH` environment variable to point to your Stockfish binary
+   - Option 1: Set `CHESSPAL_ENGINE_PATH` environment variable to point to your Stockfish binary
    - Option 2: Use the fallback configuration with these environment variables:
      ```bash
      # All variables have defaults, override as needed
-     export ENGINE_NAME=stockfish     # Default: stockfish
-     export ENGINE_VERSION=17.1       # Default: 17.1
-     export ENGINE_OS=linux           # Default: linux
-     export ENGINE_BINARY=stockfish   # Default: stockfish (include .exe for Windows)
+     export CHESSPAL_ENGINE_NAME=stockfish     # Default: stockfish
+     export CHESSPAL_ENGINE_VERSION=17.1       # Default: 17.1
+     export CHESSPAL_ENGINE_OS=macos           # Default: automatically detected based on platform
+     export CHESSPAL_ENGINE_BINARY=stockfish   # Default: stockfish (include .exe for Windows)
      ```
 
 ## Stockfish Binary Setup
 
 The ChessPal Chess Engine requires a Stockfish binary to run the server and integration tests. You have three options for setting up the binary:
 
-### Option 1: Set ENGINE_PATH (Recommended)
+### Option 1: Set CHESSPAL_ENGINE_PATH (Recommended)
 
 Point to any Stockfish executable on your system:
 
 ```bash
 # Unix-like systems (binary from apt/brew or downloaded)
-export ENGINE_PATH=/usr/local/bin/stockfish
+export CHESSPAL_ENGINE_PATH=/usr/local/bin/stockfish
 
 # Windows (PowerShell)
-$env:ENGINE_PATH="C:\path\to\stockfish.exe"
+$env:CHESSPAL_ENGINE_PATH="C:\path\to\stockfish.exe"
 ```
 
 The binary can be:
@@ -82,16 +82,16 @@ The binary can be:
 
 ### Option 2: Use engines/ Directory
 
-If `ENGINE_PATH` is not set, the server will look for the binary in a predefined directory structure:
+If `CHESSPAL_ENGINE_PATH` is not set, the server will look for the binary in a predefined directory structure:
 
 1. Download the official binary for your OS from [Stockfish releases](https://github.com/official-stockfish/Stockfish/releases)
 2. Place it in: `engines/stockfish/<version>/<os>/<binary_name>`
    - See `engines/README.md` for the exact directory structure
-3. Set `ENGINE_OS` environment variable to match your system:
+3. Set `CHESSPAL_ENGINE_OS` environment variable to match your system:
    ```bash
-   export ENGINE_OS=macos    # For macOS
-   export ENGINE_OS=linux    # For Linux
-   export ENGINE_OS=windows  # For Windows
+   export CHESSPAL_ENGINE_OS=macos    # For macOS
+   export CHESSPAL_ENGINE_OS=linux    # For Linux
+   export CHESSPAL_ENGINE_OS=windows  # For Windows
    ```
 
 ### Option 3: Build from Source (Advanced)
@@ -107,24 +107,37 @@ The server uses FastMCP with support for both Server-Sent Events (SSE) and stdio
 #### SSE Mode (Default)
 
 ```bash
-poetry run python -m dylangames_mcp_chess_engine.main
+poetry run python -m chesspal_mcp_engine.main
+# Or
+poetry run python -m chesspal_mcp_engine.main --transport sse
 ```
 
 This command starts the MCP server in SSE mode, which listens for SSE connections on the configured host and port (default: 127.0.0.1:9000). This mode is ideal for programmatic clients and agents that need to interact with the chess engine over HTTP.
 
+You can also use the entry point command:
+
+```bash
+poetry run chesspal-mcp-engine
+```
+
 #### Stdio Mode
 
 ```bash
-poetry run python -m dylangames_mcp_chess_engine.main --transport stdio
+poetry run python -m chesspal_mcp_engine.main --transport stdio
+# Or
+poetry run chesspal-mcp-engine --transport stdio
 ```
 
 This command starts the MCP server in stdio mode, which communicates through standard input/output. This mode is useful for direct integration with tools like Claude Desktop or for testing purposes.
 
 ### API Endpoints
 
-The module exposes the following endpoint through FastMCP:
+The module exposes the following endpoints through FastMCP:
 
 - `get_best_move_tool`: Get the best move for a given chess position
+- `validate_move_tool`: Validate if a move is legal in a given position
+- `get_legal_moves_tool`: Get all legal moves in a given position
+- `get_game_status_tool`: Get the current game status (in progress, checkmate, etc.)
 
 Example request using the MCP SSE client:
 ```python
@@ -167,7 +180,7 @@ Note: The outer "request" wrapper field is required for proper request validatio
 #### Timeouts
 
 The engine is configured with the following timeouts:
-- Engine calculation time: 3000ms (set via `go movetime 3000`)
+- Engine calculation time: 1000ms by default (configurable via `CHESSPAL_ENGINE_TIMEOUT_MS`)
 - Response wait timeout: 30s (allows time for engine initialization and calculation)
 - SSE client connection timeout: 15s (configurable in client code)
 
@@ -179,17 +192,25 @@ The module uses the following environment variables for configuration:
 
 ```bash
 # Primary configuration
-ENGINE_PATH=/path/to/your/engine/binary
+CHESSPAL_ENGINE_PATH=/path/to/your/engine/binary
 
-# Fallback configuration (used if ENGINE_PATH is not set/invalid)
-ENGINE_NAME=stockfish       # Default: stockfish
-ENGINE_VERSION=17.1         # Default: 17.1
-ENGINE_OS=linux            # Default: linux
-ENGINE_BINARY=stockfish    # Default: stockfish (include .exe for Windows)
+# Fallback configuration (used if CHESSPAL_ENGINE_PATH is not set/invalid)
+CHESSPAL_ENGINE_NAME=stockfish       # Default: stockfish
+CHESSPAL_ENGINE_VERSION=17.1         # Default: 17.1
+CHESSPAL_ENGINE_OS=macos             # Default: auto-detected based on platform
+CHESSPAL_ENGINE_BINARY=stockfish     # Default: stockfish (include .exe for Windows)
+
+# Engine parameters
+CHESSPAL_ENGINE_DEPTH=10             # Default: 10
+CHESSPAL_ENGINE_TIMEOUT_MS=1000      # Default: 1000
 
 # MCP Server Configuration
-MCP_HOST=127.0.0.1        # Default: 127.0.0.1
-MCP_PORT=9000             # Default: 9000
+MCP_HOST=127.0.0.1                   # Default: 127.0.0.1
+MCP_PORT=9000                        # Default: 9000
+
+# Logging configuration
+ENVIRONMENT=development              # Default: development
+LOG_LEVEL=INFO                       # Default: INFO for production, DEBUG for development
 ```
 
 See `.env.example` for a complete example configuration.
@@ -201,10 +222,14 @@ See `.env.example` for a complete example configuration.
 ```
 dylangames-mcp-chess-engine/
 ├── src/                    # Source code
-│   └── dylangames_mcp_chess_engine/
+│   └── chesspal_mcp_engine/
 │       ├── __init__.py
 │       ├── main.py        # FastMCP server
-│       └── engine_wrapper.py  # Stockfish wrapper
+│       ├── engine_wrapper.py  # Stockfish wrapper
+│       ├── config.py      # Configuration management
+│       ├── logging_config.py # Logging setup
+│       ├── shutdown.py    # Graceful shutdown handling
+│       └── models.py      # Data models
 ├── tests/                 # Test suite
 │   └── test_engine_wrapper.py
 ├── engines/              # Engine binaries directory
@@ -242,16 +267,16 @@ poetry run pre-commit run --all-files
 
 5. Using the mcp inspector:
 ```bash
-poetry run mcp dev src/dylangames_mcp_chess_engine/main.py
+poetry run mcp dev src/chesspal_mcp_engine/main.py
 
 # In the inspector UI
 # STDIO configuration
 Command: poetry
-Arguments: run python -m dylangames_mcp_chess_engine.main --transport stdio
+Arguments: run python -m chesspal_mcp_engine.main --transport stdio
 
 # SSE
 # In a separate terminal run the app in SSE mode
-poetry run python -m dylangames_mcp_chess_engine.main
+poetry run python -m chesspal_mcp_engine.main
 # In the mcp inspector UI
 Transport Type > SSE
 ```
