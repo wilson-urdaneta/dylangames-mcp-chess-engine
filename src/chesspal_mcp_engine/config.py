@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     MCP_HOST: str = Field(default="127.0.0.1", description="Host address for the MCP server.")
     MCP_PORT: int = Field(default=9000, description="Port for the MCP server.")
 
+    # --- Health Server Settings ---
+    HEALTH_HOST: str = Field(default="0.0.0.0", description="Host address for the health server.")
+    HEALTH_PORT: int = Field(default=8080, description="Port for the health server.")
+    HEALTH_LOG_LEVEL: str = Field(default="INFO", description="Log level for the health server.")
+
     # --- Chess Engine Specific Settings ---
     CHESSPAL_ENGINE_PATH: Optional[str] = Field(
         default=None,

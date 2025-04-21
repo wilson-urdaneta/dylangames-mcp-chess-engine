@@ -274,3 +274,24 @@ class StockfishEngine:
                 logger.info("Engine stopped")
                 # Unregister from registry
                 EngineRegistry.unregister(self)
+
+    def is_initialized(self) -> bool:
+        """Check if the engine is initialized and ready.
+
+        Returns:
+            bool: True if the engine is initialized and ready, False otherwise.
+        """
+        if self.process is None:
+            return False
+
+        # Check if process is still alive
+        if self.process.poll() is not None:
+            return False
+
+        try:
+            # Send a simple command to check if engine is responsive
+            self._send_command("isready")
+            responses = self._read_response(until="readyok", timeout=1.0)
+            return any(r.startswith("readyok") for r in responses)
+        except Exception:
+            return False

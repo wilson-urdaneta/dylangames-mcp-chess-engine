@@ -1,6 +1,8 @@
 """Main module for the MCP chess engine service."""
 
 import argparse
+import multiprocessing
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, List, Optional
 
@@ -10,12 +12,14 @@ from pydantic import BaseModel, Field
 
 from chesspal_mcp_engine.config import settings
 from chesspal_mcp_engine.engine_wrapper import StockfishEngine, StockfishError, _get_engine_path
+from chesspal_mcp_engine.health_server import set_engine, start_health_server
 from chesspal_mcp_engine.logging_config import get_logger, setup_logging
 from chesspal_mcp_engine.shutdown import setup_signal_handlers
 
 # Global engine instance - Initialize as None
 _engine: Optional[StockfishEngine] = None
 logger = get_logger(__name__)  # Get logger instance
+_health_process = None  # Process for health server
 
 
 def setup_environment():
@@ -31,6 +35,9 @@ def setup_environment():
         _engine = StockfishEngine()
         logger.info("Engine initialization successful")
         # No need to retrieve path again as it's already logged during engine initialization
+
+        # Register engine with health server
+        set_engine(_engine)
     except StockfishError as e:
         logger.error("Engine initialization failed: %s", e)
         # Depending on desired behavior, might want to exit or raise here
@@ -102,6 +109,9 @@ async def lifespan(server: FastMCP) -> AsyncIterator[None]:
             _engine = StockfishEngine()
             logger.info("Engine initialized successfully (via MCP lifespan)")
             # Engine path is already logged during engine initialization
+
+            # Register engine with health server
+            set_engine(_engine)
         else:
             logger.info("Reusing existing engine instance")
         yield
@@ -264,10 +274,31 @@ def main_cli():
         default="sse",  # Default to SSE
         help=("Transport mode for the MCP server " "(default: sse)"),
     )
+    parser.add_argument(
+        "--no-health-server",
+        action="store_true",
+        help="Disable the health server",
+    )
     args = parser.parse_args()  # Parse args early to handle --help
 
     # Now setup environment (logging is already set up globally)
     setup_environment()
+
+    # Start health server
+    if not args.no_health_server:
+        global _health_process
+        health_host = os.environ.get("HEALTH_HOST", settings.HEALTH_HOST)
+        health_port = int(os.environ.get("HEALTH_PORT", str(settings.HEALTH_PORT)))
+        health_log_level = os.environ.get("HEALTH_LOG_LEVEL", settings.HEALTH_LOG_LEVEL.lower())
+
+        logger.info("Starting health server on %s:%d...", health_host, health_port)
+        _health_process = multiprocessing.Process(
+            target=start_health_server,
+            args=(health_host, health_port, health_log_level),
+            daemon=True,
+        )
+        _health_process.start()
+        logger.info("Health server started with PID %d", _health_process.pid)
 
     logger.info("Starting MCP server in %s mode...", args.transport)
     logger.info(

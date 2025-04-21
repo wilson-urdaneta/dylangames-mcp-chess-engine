@@ -1,0 +1,48 @@
+# =====================================================================
+# LOCAL DEVELOPMENT & TESTING ONLY
+# =====================================================================
+# This docker-compose file is PROVIDED ONLY for isolated local development
+# and testing of the ChessPal MCP Engine service. It is NOT intended to
+# replace any existing orchestration setup that may be managing multiple
+# services across repositories.
+#
+# Use this file when you need to:
+# 1. Test changes to the ChessPal engine in isolation
+# 2. Debug container issues without affecting other services
+# 3. Run quick local tests during development
+# =====================================================================
+
+version: '3'
+
+services:
+  chesspal-engine:
+    image: chesspal-mcp-engine:latest
+    container_name: chesspal-mcp-engine
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"  # MCP server
+      - "8080:8080"  # Health server
+    volumes:
+      - stockfish-data:/app/data
+    env_file:
+      - .env
+    # Resource constraints - increase as needed
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+        reservations:
+          memory: 8G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  stockfish-data:
+    name: stockfish-data
