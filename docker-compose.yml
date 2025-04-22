@@ -22,8 +22,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8001:8001"  # MCP server
-      - "8080:8080"  # Health server
+      - "9000:9000"  # MCP server
+      - "8090:8080"  # Health server
     volumes:
       - stockfish-data:/app/data
     env_file:
@@ -32,9 +32,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 12G
+          memory: 2G
         reservations:
-          memory: 8G
+          memory: 1G
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
