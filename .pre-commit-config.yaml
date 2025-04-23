@@ -29,3 +29,20 @@ repos:
           - flake8-bugbear
           - flake8-comprehensions
           - flake8-simplify
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-requests
+        exclude: ^tests/
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: poetry run pytest
+        language: system
+        pass_filenames: false
+        always_run: true
