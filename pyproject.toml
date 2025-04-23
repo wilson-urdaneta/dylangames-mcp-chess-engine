@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chesspal-mcp-engine" # Standardized name
-version = "0.2.0" # Keep version for now
+version = "0.3.0" # Keep version for now
 description = "ChessPal MCP Engine: A Stockfish-powered chess engine exposed via MCP." # Standardized description
 authors = ["Your Name <your.email@example.com>"] # Standardized author (placeholder)
 readme = "README.md"
