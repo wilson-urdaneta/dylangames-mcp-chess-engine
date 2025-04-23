@@ -73,10 +73,14 @@ ensure_newline_before_comments = true
 asyncio_mode = "auto" # Aligned with agent
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py", "tests.py"] # Keep specific python_files pattern
-addopts = "-sv --cov=chesspal_mcp_engine --cov-report=term-missing" # Restored coverage options
+addopts = "-sv --cov=chesspal_mcp_engine --cov-report=term-missing -W ignore::DeprecationWarning" # Added warning filter
 markers = [
     "integration: marks tests as integration tests (require external dependencies like Stockfish binary)",
     "docker: marks tests that require docker",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:httpx.*:",
+    "ignore::Warning:pytest_asyncio.*:"
 ]
 
 # Standardized coverage configuration (Restored)

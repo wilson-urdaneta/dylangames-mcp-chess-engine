@@ -1,6 +1,7 @@
 """Configure pytest for the test suite."""
 
 import os
+import warnings
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -67,3 +68,15 @@ def mock_select():
     with patch("select.select") as mock_select:
         mock_select.return_value = ([MagicMock()], [], [])
         yield mock_select
+
+
+# Filter out specific deprecation warnings
+def pytest_configure(config):
+    """Configure pytest."""
+    # Filter out the specific httpx deprecation warning about 'app' shortcut
+    warnings.filterwarnings("ignore", message="The 'app' shortcut is now deprecated", category=DeprecationWarning)
+
+    # Filter out pytest-asyncio default fixture loop scope warning
+    warnings.filterwarnings(
+        "ignore", message='The configuration option "asyncio_default_fixture_loop_scope" is unset', category=Warning
+    )

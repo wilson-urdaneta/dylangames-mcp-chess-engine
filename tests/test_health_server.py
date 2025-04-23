@@ -1,5 +1,7 @@
 """Tests for the health server module."""
 
+import warnings
+
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
@@ -24,6 +26,10 @@ class MockEngine:
             The configured return value
         """
         return self._is_initialized_return
+
+
+# Filter out the specific deprecation warning from httpx
+warnings.filterwarnings("ignore", message="The 'app' shortcut is now deprecated", category=DeprecationWarning)
 
 
 class TestHealthServer:
