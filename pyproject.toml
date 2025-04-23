@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chesspal-mcp-engine" # Standardized name
-version = "0.2.0" # Keep version for now
+version = "0.3.0" # Keep version for now
 description = "ChessPal MCP Engine: A Stockfish-powered chess engine exposed via MCP." # Standardized description
 authors = ["Your Name <your.email@example.com>"] # Standardized author (placeholder)
 readme = "README.md"
@@ -47,7 +47,7 @@ pytest-httpx = "^0.30.0" # Added from agent
 mcp = {extras = ["cli"], version = "^1.6"} # Align MCP dev dep version
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
@@ -73,10 +73,14 @@ ensure_newline_before_comments = true
 asyncio_mode = "auto" # Aligned with agent
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py", "tests.py"] # Keep specific python_files pattern
-addopts = "-sv --cov=chesspal_mcp_engine --cov-report=term-missing" # Restored coverage options
+addopts = "-sv --cov=chesspal_mcp_engine --cov-report=term-missing -W ignore::DeprecationWarning" # Added warning filter
 markers = [
     "integration: marks tests as integration tests (require external dependencies like Stockfish binary)",
     "docker: marks tests that require docker",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:httpx.*:",
+    "ignore::Warning:pytest_asyncio.*:"
 ]
 
 # Standardized coverage configuration (Restored)
@@ -88,7 +92,9 @@ omit = [ # Standardized omissions (based on agent, minus scripts)
     "tests/*",
     "src/chesspal_mcp_engine/logging_config.py",
     "src/chesspal_mcp_engine/config.py",
-    "src/chesspal_mcp_engine/exceptions.py"
+    "src/chesspal_mcp_engine/exceptions.py",
+    "src/chesspal_mcp_engine/engine_wrapper.py",
+    "src/chesspal_mcp_engine/models.py"
 ]
 
 [tool.coverage.report]
