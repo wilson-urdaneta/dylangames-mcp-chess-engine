@@ -108,6 +108,8 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-internal')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
